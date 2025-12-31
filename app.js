@@ -1,16 +1,30 @@
 const $ = (id) => document.getElementById(id);
 
-// ★ meta.json の場所（今回 fixed：case01）
-const META_URL = "./case01/meta.json";
-const CASE_DIR = "./case01";
+const CASES = [
+  { id: "case01", title: "case01" },
+  { id: "case02", title: "case02" },
+  { id: "case03", title: "case03" },
+  { id: "case04", title: "case04" },
+  { id: "case05", title: "case05" },
+  { id: "case06", title: "case06" },
+];
 
 let meta = null;
+let caseId = "case01";
 let lineKind = "bad"; // "bad" or "best"
 let expKind = "A";    // "A" or "B"
 let frameIdx = 0;
 
 function setActive(btnIds, activeId) {
   btnIds.forEach(id => $(id).classList.toggle("active", id === activeId));
+}
+
+function metaUrl() {
+  return `./${caseId}/meta.json`;
+}
+
+function caseDir() {
+  return `./${caseId}`;
 }
 
 function getFrames() {
@@ -20,15 +34,18 @@ function getFrames() {
 
 function render() {
   const frames = getFrames();
-  if (!frames.length) return;
+  if (!frames.length) {
+    $("frameLabel").textContent = "（framesが空です：meta.json を確認してください）";
+    return;
+  }
 
   frameIdx = Math.max(0, Math.min(frameIdx, frames.length - 1));
   const fr = frames[frameIdx];
 
   // 画像
-  $("boardImg").src = `${CASE_DIR}/${fr.file}`;
+  $("boardImg").src = `${caseDir()}/${fr.file}`;
 
-  // ラベル（meta.jsonのlabelをそのまま表示）
+  // ラベル
   $("frameLabel").textContent = fr.label || "";
 
   // スライダー
@@ -42,9 +59,42 @@ function render() {
   $("expText").textContent = txt || "（meta.json の llm_text に A/B を入れるとここに表示されます）";
 }
 
-async function init() {
-  const res = await fetch(META_URL, { cache: "no-store" });
+async function loadCase(newCaseId) {
+  caseId = newCaseId;
+
+  // 読み込みのたびに先頭へ戻す
+  lineKind = "bad";
+  expKind = "A";
+  frameIdx = 0;
+
+  setActive(["btnBad","btnBest"], "btnBad");
+  setActive(["btnExpA","btnExpB"], "btnExpA");
+
+  const res = await fetch(metaUrl(), { cache: "no-store" });
   meta = await res.json();
+  render();
+}
+
+function initCaseSelect() {
+  const sel = $("caseSelect");
+  sel.innerHTML = "";
+
+  for (const c of CASES) {
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = c.title;
+    sel.appendChild(opt);
+  }
+
+  sel.value = caseId;
+
+  sel.addEventListener("change", async (e) => {
+    await loadCase(e.target.value);
+  });
+}
+
+async function init() {
+  initCaseSelect();
 
   // ボタンイベント
   $("btnBad").addEventListener("click", () => {
@@ -80,7 +130,8 @@ async function init() {
     render();
   });
 
-  render();
+  // 初期ロード
+  await loadCase(caseId);
 }
 
 init();
