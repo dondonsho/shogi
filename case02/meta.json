@@ -1,0 +1,60 @@
+{
+  "idx": 3,
+  "ply": 39,
+  "side": "先手",
+  "move_kif": "▲５四桂打",
+  "best_kif": "▲６六香打",
+  "eval_prev": 905,
+  "eval_cur": -138,
+  "delta": -1043,
+  "frames": {
+    "bad": [
+      {
+        "file": "bad_00.png",
+        "label": "先手が悪手を指す直前の局面"
+      },
+      {
+        "file": "bad_01.png",
+        "label": "悪手を指した局面　▲５四桂打（王手）"
+      },
+      {
+        "file": "bad_02.png",
+        "label": "悪手後 1 手目の局面　△７二玉"
+      },
+      {
+        "file": "bad_03.png",
+        "label": "悪手後 2 手目の局面　▲５五歩"
+      },
+      {
+        "file": "bad_04.png",
+        "label": "悪手後 3 手目の局面　△４六金"
+      }
+    ],
+    "best": [
+      {
+        "file": "best_00.png",
+        "label": "先手が最善手を指す直前の局面"
+      },
+      {
+        "file": "best_01.png",
+        "label": "最善手を指した局面　▲６六香打"
+      },
+      {
+        "file": "best_02.png",
+        "label": "最善手後 1 手目の局面　△７二玉"
+      },
+      {
+        "file": "best_03.png",
+        "label": "最善手後 2 手目の局面　▲６四香"
+      },
+      {
+        "file": "best_04.png",
+        "label": "最善手後 3 手目の局面　△同　歩"
+      }
+    ]
+  },
+  "llm_text": {
+    "A": "",
+    "B": ""
+  }
+}
