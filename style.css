@@ -52,3 +52,11 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   white-space: pre-wrap;
 }
 .help ul { margin: 8px 0 0; padding-left: 18px; }
+
+.casePick { display:flex; gap:8px; align-items:center; }
+.casePick select {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+}
