@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>将棋 悪手アンケート（case01）</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">将棋 悪手アンケート（お試し：1局面）</div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel">
+      <div class="row">
+        <div class="seg">
+          <button class="seg-btn active" id="btnBad">悪手後PV</button>
+          <button class="seg-btn" id="btnBest">最善手後PV</button>
+        </div>
+
+        <div class="seg">
+          <button class="seg-btn active" id="btnExpA">解説A</button>
+          <button class="seg-btn" id="btnExpB">解説B</button>
+        </div>
+      </div>
+
+      <div class="imageBox">
+        <img id="boardImg" alt="board" />
+      </div>
+
+      <div class="labelBox" id="frameLabel"></div>
+
+      <div class="sliderRow">
+        <button class="btn" id="prevBtn">←</button>
+        <input id="frameSlider" type="range" min="0" max="0" value="0" step="1" />
+        <button class="btn" id="nextBtn">→</button>
+        <div class="small" id="frameCount"></div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="help">
+        <div class="h">操作</div>
+        <ul>
+          <li>「悪手後PV / 最善手後PV」で切り替え</li>
+          <li>スライダーで局面（画像）を切り替え</li>
+          <li>解説は A→B の順に読んで、その後は自由に切り替え</li>
+        </ul>
+      </div>
+
+      <div class="textBox">
+        <div class="h" id="expTitle">解説A</div>
+        <pre id="expText"></pre>
+      </div>
+    </aside>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
