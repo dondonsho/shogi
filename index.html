@@ -3,91 +3,75 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>将棋 悪手アンケート</title>
+  <title>将棋解説アンケート</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <header class="bar">
-    <div class="brand">将棋 悪手アンケート</div>
+    <div class="brand">将棋解説アンケート</div>
   </header>
 
-  <!-- ===== STEP 1: 経験アンケート ===== -->
-  <main class="wrap step" id="stepIntro">
-    <section class="panel">
-      <h2 class="title">最初に：将棋経験アンケート</h2>
-
-      <div class="formRow">
-        <label>学籍番号（必須）</label>
-        <input id="studentId" class="input" placeholder="例：111111" />
-      </div>
-
-      <div class="formRow">
-        <label>学年（必須）</label>
-        <select id="grade" class="input">
-          <option value="">選択してください</option>
-          <option>1年</option><option>2年</option><option>3年</option><option>4年</option>
-          <option>院1年</option><option>院2年</option><option>その他</option>
-        </select>
-      </div>
-
-      <div class="formRow">
-        <label>Q1. 将棋経験として最も近いものを1つ選ぶ（必須）</label>
-        <select id="expLevel" class="input">
-          <option value="">選択してください</option>
-          <option>将棋はほとんど指したことがない（ルールもあいまい／対局経験がほぼない）</option>
-          <option>将棋は少し指したことがある（たまに指す程度、継続的ではない）</option>
-          <option>将棋を継続的に指している、または過去に継続的に指していた時期がある（オンライン／対面は問わない）</option>
-          <option>将棋部・道場・大会参加など、継続的な活動経験がある（現在／過去を含む）</option>
-        </select>
-      </div>
-
-      <div class="err" id="expErr"></div>
-
-      <button class="btn primary" id="startBtn">入力して開始（局面へ）</button>
+  <main class="wrap">
+    <!-- ========== STEP: 経験アンケート ========== -->
+    <section class="panel step" id="stepIntro">
+      <h2 class="title">事前アンケート（将棋経験）</h2>
 
       <div class="note">
-        ※このページではGoogleフォーム自体は表示していません。<br/>
-        画面上で回答して、最後にまとめて送信されます。
+        <p class="noteTitle">回答方法</p>
+        <ul>
+          <li>このページは <b>将棋の局面（画像）</b>と、<b>解説A / 解説B</b> を読み比べて評価するアンケートです。</li>
+          <li>局面では「悪手後PV」「最善手後PV」を切り替えられます（PV = 読み筋のこと）。</li>
+          <li>PVは <b>スライダー</b> または <b>← / →</b> で動きます。見るかどうかは任意です。</li>
+          <li>各局面は <b>解説A → 解説B</b> の順に読んでから回答してください。読んだ後に、もう一度A/Bを見直してもOKです。</li>
+          <li>回答は「1がA寄り」「5がB寄り」です。質問文に合わせて <b>“より当てはまる方”</b> を選んでください。</li>
+        </ul>
+      </div>
+
+      <div class="grid2">
+        <label class="field">
+          <span class="lbl">学籍番号（必須）</span>
+          <input id="studentId" type="text" placeholder="例：1234567" />
+        </label>
+
+        <label class="field">
+          <span class="lbl">学年（必須）</span>
+          <select id="grade">
+            <option value="">選択してください</option>
+            <option>1年</option><option>2年</option><option>3年</option><option>4年</option>
+            <option>院1年</option><option>院2年</option>
+            <option>その他</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="field">
+        <div class="lbl">Q1. 将棋経験として最も近いものを1つ選ぶ（必須）</div>
+        <div class="radioCol" id="expLevel">
+          <label><input type="radio" name="exp" value="将棋はほとんど指したことがない（ルールもあいまい／対局経験がほぼない）"> 将棋はほとんど指したことがない（ルールもあいまい／対局経験がほぼない）</label>
+          <label><input type="radio" name="exp" value="将棋は少し指したことがある（たまに指す程度、継続的ではない）"> 将棋は少し指したことがある（たまに指す程度、継続的ではない）</label>
+          <label><input type="radio" name="exp" value="将棋を継続的に指している、または過去に継続的に指していた時期がある（オンライン／対面は問わない）"> 将棋を継続的に指している、または過去に継続的に指していた時期がある（オンライン／対面は問わない）</label>
+          <label><input type="radio" name="exp" value="将棋部・道場・大会参加など、継続的な活動経験がある（現在／過去を含む）"> 将棋部・道場・大会参加など、継続的な活動経験がある（現在／過去を含む）</label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="startBtn">次へ（局面へ進む）</button>
+        <div class="err" id="introErr"></div>
       </div>
     </section>
 
-    <aside class="panel">
-      <h2 class="title">回答方法（必ず読んでください）</h2>
-      <div class="guide">
-        <ol>
-          <li>
-            各局面について、まず <b>解説A → 解説B</b> の順に読んでください。<br/>
-            その後は、必要ならどちらの解説に戻って読み直してもOKです。
-          </li>
-          <li>
-            盤面は <b>「悪手後PV / 最善手後PV」</b>で切り替えできます。<br/>
-            画像の切り替えは <b>スライダー</b> または <b>← / →</b> で行えます。<br/>
-            ※PV（盤面の変化）を見るかどうかは任意です。
-          </li>
-          <li>
-            解説評価の回答は <b>1〜5</b> で選びます。<br/>
-            <b>1 = Aの方が当てはまる</b> / <b>3 = どちらともいえない</b> / <b>5 = Bの方が当てはまる</b>
-          </li>
-          <li>
-            各局面のアンケート回答が終わったら <b>「回答して次へ」</b> を押してください。
-          </li>
-        </ol>
-      </div>
-    </aside>
-  </main>
-
-  <!-- ===== STEP 2: 局面ビュー + 局面ごとのアンケート ===== -->
-  <main class="wrap step hidden" id="stepCase">
-    <section class="panel">
-      <div class="row topRow">
-        <div class="caseHead">
-          <div class="caseTitle" id="caseTitle"></div>
-          <div class="seenRow">
-            <span class="seenItem">解説A閲覧 <span id="seenA">□</span></span>
-            <span class="seenItem">解説B閲覧 <span id="seenB">□</span></span>
-          </div>
+    <!-- ========== STEP: 局面（ビューア＋回答） ========== -->
+    <section class="panel step hidden" id="stepCase">
+      <div class="caseHeader">
+        <h2 class="title" id="caseTitle">局面</h2>
+        <div class="pillRow">
+          <span class="pill" id="pillCase">case01</span>
+          <span class="pill ok" id="pillA">解説A：閲覧済</span>
+          <span class="pill" id="pillB">解説B：未閲覧</span>
         </div>
+      </div>
 
+      <div class="row">
         <div class="seg">
           <button class="seg-btn active" id="btnBad">悪手後PV</button>
           <button class="seg-btn" id="btnBest">最善手後PV</button>
@@ -111,9 +95,7 @@
         <button class="btn" id="nextBtn">→</button>
         <div class="small" id="frameCount"></div>
       </div>
-    </section>
 
-    <aside class="panel">
       <div class="textBox">
         <div class="h" id="expTitle">解説A</div>
         <pre id="expText"></pre>
@@ -121,89 +103,64 @@
 
       <hr class="sep"/>
 
-      <div class="survey">
-        <div class="surveyTitle">解説評価アンケート</div>
-        <div class="surveyNote">
-          ※ 解説は <b>A → B</b> の順に読んでから回答してください（読んだ後はどちらに戻ってもOKです）。
-        </div>
-
-        <!-- Q1-4 -->
-        <div class="q">
-          <div class="qTitle">Q1. 日本語として自然で読みやすいと感じるのはどちらですか。</div>
-          <div class="scale">
-            <label><input type="radio" name="eval_q1" value="1">1</label>
-            <label><input type="radio" name="eval_q1" value="2">2</label>
-            <label><input type="radio" name="eval_q1" value="3">3</label>
-            <label><input type="radio" name="eval_q1" value="4">4</label>
-            <label><input type="radio" name="eval_q1" value="5">5</label>
-          </div>
-          <div class="scaleHint">1=Aの方が当てはまる / 3=どちらともいえない / 5=Bの方が当てはまる</div>
-        </div>
-
-        <div class="q">
-          <div class="qTitle">Q2. なぜ悪手なのかを理解しやすいのはどちらですか。</div>
-          <div class="scale">
-            <label><input type="radio" name="eval_q2" value="1">1</label>
-            <label><input type="radio" name="eval_q2" value="2">2</label>
-            <label><input type="radio" name="eval_q2" value="3">3</label>
-            <label><input type="radio" name="eval_q2" value="4">4</label>
-            <label><input type="radio" name="eval_q2" value="5">5</label>
-          </div>
-          <div class="scaleHint">1=Aの方が当てはまる / 3=どちらともいえない / 5=Bの方が当てはまる</div>
-        </div>
-
-        <div class="q">
-          <div class="qTitle">Q3. 局面の状況をより正しく説明していると感じるのはどちらですか。</div>
-          <div class="scale">
-            <label><input type="radio" name="eval_q3" value="1">1</label>
-            <label><input type="radio" name="eval_q3" value="2">2</label>
-            <label><input type="radio" name="eval_q3" value="3">3</label>
-            <label><input type="radio" name="eval_q3" value="4">4</label>
-            <label><input type="radio" name="eval_q3" value="5">5</label>
-          </div>
-          <div class="scaleHint">1=Aの方が当てはまる / 3=どちらともいえない / 5=Bの方が当てはまる</div>
-        </div>
-
-        <div class="q">
-          <div class="qTitle">Q4. 将棋の振り返り・上達により役立つと感じるのはどちらですか。</div>
-          <div class="scale">
-            <label><input type="radio" name="eval_q4" value="1">1</label>
-            <label><input type="radio" name="eval_q4" value="2">2</label>
-            <label><input type="radio" name="eval_q4" value="3">3</label>
-            <label><input type="radio" name="eval_q4" value="4">4</label>
-            <label><input type="radio" name="eval_q4" value="5">5</label>
-          </div>
-          <div class="scaleHint">1=Aの方が当てはまる / 3=どちらともいえない / 5=Bの方が当てはまる</div>
-        </div>
-
-        <!-- free -->
-        <div class="q">
-          <div class="qTitle">Q5. 自由記述（任意）：気づいた点、分かりにくかった点、改善案など</div>
-          <textarea id="evalFree" placeholder="任意で記入してください"></textarea>
-        </div>
-
-        <div class="err" id="evalErr"></div>
-        <div class="sending" id="sendingMsg"></div>
-
-        <button class="btn primary" id="nextCaseBtn">回答して次へ</button>
+      <h3 class="subtitle">解説評価アンケート（この局面）</h3>
+      <div class="note2">
+        <b>回答のしかた：</b> 1が「Aの方が当てはまる」、5が「Bの方が当てはまる」、3は同程度です。
       </div>
-    </aside>
-  </main>
 
-  <!-- ===== STEP 3: 完了 ===== -->
-  <main class="wrap step hidden" id="stepDone">
-    <section class="panel">
-      <h2 class="title">送信しました。ご協力ありがとうございました！</h2>
-      <p class="doneText">
-        回答は正常に送信されました（通信環境により反映まで少し時間がかかる場合があります）。<br/>
-        この画面は閉じて大丈夫です。
-      </p>
+      <div class="qBlock" id="qBlock">
+        <div class="q">
+          <div class="qTitle">Q1. 日本語として自然で読みやすいのはどちらですか。</div>
+          <div class="scale" data-q="q1"></div>
+        </div>
+        <div class="q">
+          <div class="qTitle">Q2. なぜ悪手なのか理解しやすいのはどちらですか。</div>
+          <div class="scale" data-q="q2"></div>
+        </div>
+        <div class="q">
+          <div class="qTitle">Q3. 局面の状況を正しく説明していると感じるのはどちらですか。</div>
+          <div class="scale" data-q="q3"></div>
+        </div>
+        <div class="q">
+          <div class="qTitle">Q4. 将棋の振り返り、上達に役立つと感じるのはどちらですか。</div>
+          <div class="scale" data-q="q4"></div>
+        </div>
+
+        <label class="field">
+          <span class="lbl">Q5. 気づいた点、わかりにくかった点など（任意）</span>
+          <textarea id="freeText" rows="5" placeholder="自由記述（任意）"></textarea>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="nextCaseBtn">回答して次へ</button>
+        <div class="err" id="caseErr"></div>
+      </div>
+    </section>
+
+    <!-- ========== STEP: 送信 ========== -->
+    <section class="panel step hidden" id="stepSubmit">
+      <h2 class="title">最終送信</h2>
+      <p class="note3">すべての回答が終わりました。下のボタンで送信してください。</p>
+
+      <div class="actions">
+        <button class="btn primary" id="submitBtn">送信して終了</button>
+        <div class="small" id="submitMsg"></div>
+      </div>
+
+      <!-- Google Forms へPOSTするための隠しフォーム -->
+      <iframe name="hidden_iframe" id="hidden_iframe" class="hidden"></iframe>
+      <form id="gform" target="hidden_iframe" method="POST">
+        <!-- JSで input を生成して詰める -->
+      </form>
+    </section>
+
+    <!-- ========== STEP: 完了 ========== -->
+    <section class="panel step hidden" id="stepThanks">
+      <h2 class="title">送信ありがとうございました！</h2>
+      <p>ご協力ありがとうございました。これでアンケートは終了です。</p>
     </section>
   </main>
-
-  <!-- Google Form 送信用（画面には出さない） -->
-  <iframe id="hidden_iframe" name="hidden_iframe" class="hidden"></iframe>
-  <form id="gform" method="POST" target="hidden_iframe" accept-charset="UTF-8"></form>
 
   <script src="./app.js"></script>
 </body>
