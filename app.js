@@ -1,107 +1,68 @@
 const $ = (id) => document.getElementById(id);
 
-function show(id) {
-  ["screenPre","screenCase","screenSending","screenThanks","fatalBox"].forEach(x => {
-    const el = $(x);
-    if (!el) return;
-    el.classList.toggle("hidden", x !== id);
-  });
-}
-
-function fatal(msg, err) {
-  console.error(msg, err || "");
-  $("fatalText").textContent = msg + (err ? ("\n\n" + String(err)) : "");
-  show("fatalBox");
-}
-
-function setActive(btnIds, activeId) {
-  btnIds.forEach(id => {
-    const el = $(id);
-    if (!el) return;
-    el.classList.toggle("active", id === activeId);
-  });
-}
-
-/** 2局面（必要なら増やせる） */
 const CASES = [
-  { id: "case01", title: "局面1" },
-  { id: "case02", title: "局面2" },
+  // ★ いまは2局面で運用してる前提（6に増やす時はここに追加）
+  {
+    id: "case01",
+    title: "局面1",
+    folder: "case01",
+    entry: { q1: "entry.179074931", q2: "entry.94393688", q3: "entry.103223312", q4: "entry.1462974134", q5: "entry.965249262" }
+  },
+  {
+    id: "case02",
+    title: "局面2",
+    folder: "case02",
+    entry: { q1: "entry.131585168", q2: "entry.1860590575", q3: "entry.927062088", q4: "entry.1346505265", q5: "entry.1951216814" }
+  }
 ];
 
-/** Google Form */
-const FORM_ID = "1FAIpQLSfgKJORGMzF8J1E3uZXLLn80tkNMhhxfA5y4gGI33o3fOby-A";
-const FORM_POST_URL = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
+// Google Form（formResponse）
+const FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSfgKJORGMzF8J1E3uZXLLn80tkNMhhxfA5y4gGI33o3fOby-A/formResponse";
 
-// 事前（経験）
+// 事前アンケートの entry
 const ENTRY_PRE = {
   studentId: "entry.83230582",
-  grade:     "entry.907422778",
-  exp:       "entry.884953881",
+  grade: "entry.907422778",
+  exp: "entry.884953881"
 };
 
-// 局面1
-const ENTRY_CASE01 = {
-  q1: "entry.179074931",
-  q2: "entry.94393688",
-  q3: "entry.103223312",
-  q4: "entry.1462974134",
-  free: "entry.965249262",
-};
-
-// 局面2
-const ENTRY_CASE02 = {
-  q1: "entry.131585168",
-  q2: "entry.1860590575",
-  q3: "entry.927062088",
-  q4: "entry.1346505265",
-  free: "entry.1951216814",
-};
-
-function entryForCase(caseId) {
-  if (caseId === "case01") return ENTRY_CASE01;
-  if (caseId === "case02") return ENTRY_CASE02;
-  return null;
-}
-
-/** 将棋ビュー用 state */
+let currentCaseIdx = -1;
 let meta = null;
-let caseIndex = 0;
-let lineKind = "bad";
-let expKind = "A";
+
+let lineKind = "bad"; // bad / best
+let expKind = "A";    // A / B
 let frameIdx = 0;
 
-let viewedA = false;
-let viewedB = false;
+const metaCache = new Map();
 
-/** 回答の蓄積（最後に1回送信） */
+// 回答データを保持（最後にまとめて1回だけ送信）
 const answers = {
-  pre: { studentId:"", grade:"", exp:"" },
-  cases: {}
+  pre: { studentId: "", grade: "", exp: "" },
+  cases: {} // caseId -> {q1..q5}
 };
 
-function caseId() {
-  return CASES[caseIndex]?.id || "case01";
+// 解説閲覧（Aは最初から表示＝閲覧扱い、Bはクリック必須）
+let seenA = false;
+let seenB = false;
+
+function setActive(btnIds, activeId) {
+  btnIds.forEach(id => $(id).classList.toggle("active", id === activeId));
 }
-function caseDir() {
-  return `./${caseId()}`;
+
+function metaUrl(caseObj) {
+  return `./${caseObj.folder}/meta.json`;
 }
-function metaUrl() {
-  return `${caseDir()}/meta.json`;
+function caseDir(caseObj) {
+  return `./${caseObj.folder}`;
 }
 function getFrames() {
   if (!meta?.frames) return [];
   return meta.frames[lineKind] || [];
 }
 
-function updateProgress() {
-  const total = CASES.length;
-  $("progressText").textContent = `局面 ${Math.min(caseIndex+1, total)} / ${total}`;
-}
-
-function updateCaseTitle() {
-  const title = CASES[caseIndex]?.title || caseId();
-  $("caseTitle").textContent = title;
-  $("caseSurveyTitle").textContent = `解説評価アンケート（${title}）`;
+function updateSeenBadges() {
+  $("seenA").textContent = `A：${seenA ? "✓" : "未"}`;
+  $("seenB").textContent = `B：${seenB ? "✓" : "未"}`;
 }
 
 function render() {
@@ -114,226 +75,197 @@ function render() {
   frameIdx = Math.max(0, Math.min(frameIdx, frames.length - 1));
   const fr = frames[frameIdx];
 
-  $("boardImg").src = `${caseDir()}/${fr.file}`;
+  // 画像
+  $("boardImg").src = `${caseDir(CASES[currentCaseIdx])}/${fr.file}`;
+
+  // ラベル
   $("frameLabel").textContent = fr.label || "";
 
+  // スライダー
   $("frameSlider").max = String(frames.length - 1);
   $("frameSlider").value = String(frameIdx);
   $("frameCount").textContent = `${frameIdx + 1} / ${frames.length}`;
 
+  // 解説
   const txt = meta?.llm_text?.[expKind] ?? "";
   $("expTitle").textContent = `解説${expKind}`;
   $("expText").textContent = txt || "（meta.json の llm_text に A/B を入れるとここに表示されます）";
-
-  $("btnExpA").textContent = viewedA ? "解説A ✓" : "解説A";
-  $("btnExpB").textContent = viewedB ? "解説B ✓" : "解説B";
-
-  const isLast = (caseIndex === CASES.length - 1);
-  $("btnCaseNext").textContent = isLast ? "回答して送信" : "回答して次へ";
-
-  updateViewWarn();
 }
 
-function updateViewWarn() {
-  const need = [];
-  if (!viewedA) need.push("解説A");
-  if (!viewedB) need.push("解説B");
+async function loadCaseByIndex(idx) {
+  currentCaseIdx = idx;
+  const c = CASES[currentCaseIdx];
 
-  const warn = $("viewWarn");
-  if (need.length) {
-    warn.textContent = `※ ${need.join(" と ")} を読んでから回答してください（A→Bの順）`;
-    $("btnCaseNext").disabled = true;
-  } else {
-    warn.textContent = "";
-    $("btnCaseNext").disabled = false;
-  }
-}
+  $("caseTitle").textContent = c.title;
+  $("caseTitleInline").textContent = c.title;
+  $("caseProgress").textContent = `${currentCaseIdx + 1} / ${CASES.length}`;
 
-async function loadCase(idx) {
-  caseIndex = idx;
-  updateProgress();
-  updateCaseTitle();
-
+  // 初期化
   lineKind = "bad";
   expKind = "A";
   frameIdx = 0;
 
-  setActive(["btnBad","btnBest"], "btnBad");
-  setActive(["btnExpA","btnExpB"], "btnExpA");
+  setActive(["btnBad", "btnBest"], "btnBad");
+  setActive(["btnExpA", "btnExpB"], "btnExpA");
 
-  viewedA = true;   // 初期表示はAなので「閲覧済み」扱い
-  viewedB = false;
+  // ★Aは最初から表示されるので閲覧扱い
+  seenA = true;
+  seenB = false;
+  updateSeenBadges();
 
-  restoreCaseAnswerUI();
+  // アンケUI初期化
+  clearCaseInputs();
 
-  const res = await fetch(metaUrl(), { cache: "no-store" });
-  meta = await res.json();
+  // meta 読み込み（キャッシュ）
+  if (metaCache.has(c.id)) {
+    meta = metaCache.get(c.id);
+  } else {
+    const res = await fetch(metaUrl(c), { cache: "no-store" });
+    meta = await res.json();
+    metaCache.set(c.id, meta);
+  }
+
+  // 最後のボタン文言
+  $("btnNextCase").textContent = (currentCaseIdx === CASES.length - 1) ? "送信して終了" : "回答して次へ";
+  $("caseErr").textContent = "";
+
   render();
 }
 
-/** 1〜5 ラジオ */
-function buildScale(node) {
-  node.innerHTML = "";
-  for (let v = 1; v <= 5; v++) {
-    const lab = document.createElement("label");
-    lab.innerHTML = `<input type="radio" name="${node.dataset.q}" value="${v}"> ${v}`;
-    node.appendChild(lab);
-  }
-}
-function initScales() {
-  document.querySelectorAll(".scale").forEach(buildScale);
+function showPage(which) {
+  $("pagePre").style.display = (which === "pre") ? "" : "none";
+  $("pageCase").style.display = (which === "case") ? "" : "none";
+  $("pageThanks").style.display = (which === "thanks") ? "" : "none";
 }
 
-function getRadioVal(name) {
-  const el = document.querySelector(`input[name="${name}"]:checked`);
-  return el ? el.value : "";
-}
-function setRadioVal(name, value) {
-  if (!value) return;
-  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
-  if (el) el.checked = true;
-}
-
-function clearRadios() {
-  ["q1","q2","q3","q4"].forEach(q => {
-    document.querySelectorAll(`input[name="${q}"]`).forEach(r => r.checked = false);
-  });
-  $("freeText").value = "";
-}
-
-function restoreCaseAnswerUI() {
-  const cid = caseId();
-  const a = answers.cases[cid];
-  if (!a) { clearRadios(); return; }
-  setRadioVal("q1", a.q1);
-  setRadioVal("q2", a.q2);
-  setRadioVal("q3", a.q3);
-  setRadioVal("q4", a.q4);
-  $("freeText").value = a.free || "";
-}
-
-function saveCaseAnswerFromUI() {
-  const cid = caseId();
-  answers.cases[cid] = {
-    q1: getRadioVal("q1"),
-    q2: getRadioVal("q2"),
-    q3: getRadioVal("q3"),
-    q4: getRadioVal("q4"),
-    free: ($("freeText").value || "").trim(),
-  };
-}
-
-function validateCaseAnswers() {
-  const a = {
-    q1: getRadioVal("q1"),
-    q2: getRadioVal("q2"),
-    q3: getRadioVal("q3"),
-    q4: getRadioVal("q4"),
-  };
-  const miss = Object.entries(a).filter(([k,v]) => !v).map(([k]) => k.toUpperCase());
-  if (miss.length) {
-    $("caseWarn").classList.remove("hidden");
-    $("caseWarn").textContent = `未回答があります：${miss.join(", ")}（1〜5を選んでください）`;
-    return false;
-  }
-  $("caseWarn").classList.add("hidden");
-  $("caseWarn").textContent = "";
-  return true;
-}
-
-/** 事前アンケ */
-function getPreExpVal() {
-  const el = document.querySelector(`input[name="preExp"]:checked`);
-  return el ? el.value : "";
+function getPreValue() {
+  const studentId = $("studentId").value.trim();
+  const grade = $("grade").value;
+  const exp = document.querySelector('input[name="exp"]:checked')?.value || "";
+  return { studentId, grade, exp };
 }
 
 function validatePre() {
-  const sid = ($("preStudentId").value || "").trim();
-  const grade = ($("preGrade").value || "").trim();
-  const exp = getPreExpVal();
-
-  const warn = $("preWarn");
-  warn.classList.add("hidden");
-  warn.textContent = "";
-
-  const miss = [];
-  if (!sid) miss.push("学籍番号");
-  if (!grade) miss.push("学年");
-  if (!exp) miss.push("将棋経験（Q1）");
-
-  if (miss.length) {
-    warn.classList.remove("hidden");
-    warn.textContent = `未入力があります：${miss.join(" / ")}`;
-    return false;
-  }
-
-  answers.pre.studentId = sid;
-  answers.pre.grade = grade;
-  answers.pre.exp = exp;
-  return true;
+  const { studentId, grade, exp } = getPreValue();
+  if (!studentId) return "学籍番号を入力してください。";
+  if (!grade) return "学年を選択してください。";
+  if (!exp) return "将棋経験を1つ選んでください。";
+  return "";
 }
 
-/** 送信 */
-function buildPostBody() {
-  const p = new URLSearchParams();
+function buildScale(containerId, name) {
+  const host = $(containerId);
+  host.innerHTML = "";
+  for (let i = 1; i <= 5; i++) {
+    const lab = document.createElement("label");
+    const inp = document.createElement("input");
+    inp.type = "radio";
+    inp.name = name;
+    inp.value = String(i);
+    const span = document.createElement("span");
+    span.textContent = String(i);
+    lab.appendChild(inp);
+    lab.appendChild(span);
+    host.appendChild(lab);
+  }
+}
 
-  p.append(ENTRY_PRE.studentId, answers.pre.studentId);
-  p.append(ENTRY_PRE.grade, answers.pre.grade);
-  p.append(ENTRY_PRE.exp, answers.pre.exp);
+function clearCaseInputs() {
+  // ラジオは name でまとめてクリア
+  ["case_q1", "case_q2", "case_q3", "case_q4"].forEach(n => {
+    document.querySelectorAll(`input[name="${n}"]`).forEach(el => el.checked = false);
+  });
+  $("q5Text").value = "";
+}
 
+function getScaleVal(name) {
+  return document.querySelector(`input[name="${name}"]:checked`)?.value || "";
+}
+
+function validateCase() {
+  // 解説Bを一度は開いてほしい
+  if (!seenB) return "解説Bを開いてから回答してください。（上の「解説B」を押してください）";
+
+  const q1 = getScaleVal("case_q1");
+  const q2 = getScaleVal("case_q2");
+  const q3 = getScaleVal("case_q3");
+  const q4 = getScaleVal("case_q4");
+
+  if (!q1 || !q2 || !q3 || !q4) return "Q1〜Q4 をすべて回答してください。";
+  return "";
+}
+
+function saveCurrentCaseAnswers() {
+  const c = CASES[currentCaseIdx];
+  answers.cases[c.id] = {
+    q1: getScaleVal("case_q1"),
+    q2: getScaleVal("case_q2"),
+    q3: getScaleVal("case_q3"),
+    q4: getScaleVal("case_q4"),
+    q5: $("q5Text").value.trim()
+  };
+}
+
+function submitAllToGoogleForm() {
+  const form = $("gForm");
+  form.action = FORM_ACTION;
+  form.innerHTML = ""; // いったん全消し
+
+  const add = (name, value) => {
+    if (value == null) return;
+    const v = String(value).trim();
+    if (!v) return;
+    const inp = document.createElement("input");
+    inp.type = "hidden";
+    inp.name = name;
+    inp.value = v;
+    form.appendChild(inp);
+  };
+
+  // 事前
+  add(ENTRY_PRE.studentId, answers.pre.studentId);
+  add(ENTRY_PRE.grade, answers.pre.grade);
+  add(ENTRY_PRE.exp, answers.pre.exp);
+
+  // 各局面
   for (const c of CASES) {
-    const ent = entryForCase(c.id);
     const a = answers.cases[c.id] || {};
-    if (!ent) continue;
-    p.append(ent.q1, a.q1 || "");
-    p.append(ent.q2, a.q2 || "");
-    p.append(ent.q3, a.q3 || "");
-    p.append(ent.q4, a.q4 || "");
-    p.append(ent.free, a.free || "");
+    add(c.entry.q1, a.q1 || "");
+    add(c.entry.q2, a.q2 || "");
+    add(c.entry.q3, a.q3 || "");
+    add(c.entry.q4, a.q4 || "");
+    add(c.entry.q5, a.q5 || "");
   }
 
-  p.append("submit", "Submit");
-  return p;
+  // 送信（CORS回避：hidden iframe）
+  form.submit();
 }
 
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))
-  ]);
-}
-
-async function submitAll() {
-  show("screenSending");
-  const body = buildPostBody();
-
-  await withTimeout(fetch(FORM_POST_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-    body: body.toString(),
-  }), 8000);
-
-  show("screenThanks");
-}
-
-/** 初期化 */
 async function init() {
-  initScales();
+  // スケール生成（毎回同じUIを使い回す）
+  buildScale("q1Scale", "case_q1");
+  buildScale("q2Scale", "case_q2");
+  buildScale("q3Scale", "case_q3");
+  buildScale("q4Scale", "case_q4");
 
-  $("btnPreNext").addEventListener("click", async () => {
-    if (!validatePre()) return;
-    show("screenCase");
-    await loadCase(0);
+  // 事前 → 局面へ
+  $("btnStart").addEventListener("click", async () => {
+    const msg = validatePre();
+    $("preErr").textContent = msg;
+    if (msg) return;
+
+    answers.pre = getPreValue();
+    showPage("case");
+    await loadCaseByIndex(0);
   });
 
+  // PV切替
   $("btnBad").addEventListener("click", () => {
     lineKind = "bad";
     setActive(["btnBad","btnBest"], "btnBad");
     frameIdx = 0;
     render();
   });
-
   $("btnBest").addEventListener("click", () => {
     lineKind = "best";
     setActive(["btnBad","btnBest"], "btnBest");
@@ -341,20 +273,23 @@ async function init() {
     render();
   });
 
+  // 解説切替（閲覧管理）
   $("btnExpA").addEventListener("click", () => {
     expKind = "A";
-    viewedA = true;
     setActive(["btnExpA","btnExpB"], "btnExpA");
+    seenA = true; // 念のため
+    updateSeenBadges();
     render();
   });
-
   $("btnExpB").addEventListener("click", () => {
     expKind = "B";
-    viewedB = true;
     setActive(["btnExpA","btnExpB"], "btnExpB");
+    seenB = true;
+    updateSeenBadges();
     render();
   });
 
+  // フレーム移動
   $("prevBtn").addEventListener("click", () => { frameIdx--; render(); });
   $("nextBtn").addEventListener("click", () => { frameIdx++; render(); });
   $("frameSlider").addEventListener("input", (e) => {
@@ -362,22 +297,29 @@ async function init() {
     render();
   });
 
-  $("btnCaseNext").addEventListener("click", async () => {
-    if (!viewedA || !viewedB) { updateViewWarn(); return; }
-    if (!validateCaseAnswers()) return;
+  // 次へ（または送信）
+  $("btnNextCase").addEventListener("click", async () => {
+    const msg = validateCase();
+    $("caseErr").textContent = msg;
+    if (msg) return;
 
-    saveCaseAnswerFromUI();
+    saveCurrentCaseAnswers();
 
-    const isLast = (caseIndex === CASES.length - 1);
-    if (!isLast) {
-      await loadCase(caseIndex + 1);
+    if (currentCaseIdx < CASES.length - 1) {
+      await loadCaseByIndex(currentCaseIdx + 1);
+      window.scrollTo({ top: 0, behavior: "instant" });
       return;
     }
-    await submitAll();
+
+    // 最後：送信して完了画面へ
+    submitAllToGoogleForm();
+    showPage("thanks");
+    window.scrollTo({ top: 0, behavior: "instant" });
   });
 
-  show("screenPre");
-  $("progressText").textContent = "";
+  // 初期表示：事前アンケート
+  showPage("pre");
+  $("preErr").textContent = "";
 }
 
-init().catch(e => fatal("初期化に失敗しました（コピペ漏れの可能性）", e));
+init();
