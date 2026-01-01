@@ -1,118 +1,104 @@
 const $ = (id) => document.getElementById(id);
 
-const FORM_ID = "1FAIpQLSfgKJORGMzF8J1E3uZXLLn80tkNMhhxfA5y4gGI33o3fOby-A";
-const FORM_ACTION = `https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`;
+// ===============================
+// 設定（あなたのフォーム）
+// ===============================
+const FORM_ACTION =
+  "https://docs.google.com/forms/d/e/1FAIpQLSfgKJORGMzF8J1E3uZXLLn80tkNMhhxfA5y4gGI33o3fOby-A/formResponse";
 
-// ===== entry番号（あなたのURLから取得済み） =====
+// あなたが貼ってくれた prefill URL から読み取れる entry 番号（2局面ぶん）
 const ENTRY = {
-  // 経験（セクション1）
+  // 経験セクション
   studentId: "entry.83230582",
-  grade: "entry.907422778",
-  expLevel: "entry.884953881",
+  grade:     "entry.907422778",
+  expQ1:     "entry.884953881",
 
-  // 局面1（セクション2）
-  case01: {
-    q1: "entry.179074931",
-    q2: "entry.94393688",
-    q3: "entry.103223312",
-    q4: "entry.1462974134",
-    q5: "entry.965249262",
-  },
-  // 局面2（セクション3）
-  case02: {
-    q1: "entry.131585168",
-    q2: "entry.1860590575",
-    q3: "entry.927062088",
-    q4: "entry.1346505265",
-    q5: "entry.1951216814",
-  },
+  // 局面1（case01）
+  c1_q1: "entry.179074931",
+  c1_q2: "entry.94393688",
+  c1_q3: "entry.103223312",
+  c1_q4: "entry.1462974134",
+  c1_free: "entry.965249262",
+
+  // 局面2（case02）
+  c2_q1: "entry.131585168",
+  c2_q2: "entry.1860590575",
+  c2_q3: "entry.927062088",
+  c2_q4: "entry.1346505265",
+  c2_free: "entry.1951216814",
 };
 
+// expQ1（将棋経験）の選択肢は「フォームの選択肢の文字列と完全一致」が必要
+const EXP_CHOICES = [
+  "将棋はほとんど指したことがない（ルールもあいまい／対局経験がほぼない）",
+  "将棋は少し指したことがある（たまに指す程度、継続的ではない）",
+  "将棋を継続的に指している、または過去に継続的に指していた時期がある（オンライン／対面は問わない）",
+  "将棋部・道場・大会参加など、継続的な活動経験がある（現在／過去を含む）",
+];
+
+// 2局面の順番（将来的に 6 個に増やすならここを増やすだけ）
 const CASES = [
   { id: "case01", title: "局面1" },
   { id: "case02", title: "局面2" },
 ];
 
-let step = "exp";         // "exp" or "case"
-let caseIndex = 0;        // 0..CASES.length-1
+// localStorage（同じ端末での二重送信を減らす）
+const LS_KEY = "shogi_survey_v1_state";
+const LS_SUBMITTED = "shogi_survey_v1_submitted";
 
+// ===============================
+// 状態
+// ===============================
+let step = 0;            // 0=経験, 1=case01, 2=case02, 3=完了
 let meta = null;
-let lineKind = "bad";     // "bad" or "best"
-let expKind = "A";        // "A" or "B"
+let lineKind = "bad";    // bad / best
+let expKind = "A";       // A / B
 let frameIdx = 0;
 
-const seen = {};          // { case01: {A:true,B:true}, ... }
-const answers = {
-  exp: { studentId: "", grade: "", expLevel: "" },
+let state = {
+  profile: {
+    studentId: "",
+    grade: "",
+    expQ1: "", // EXP_CHOICES のどれか（文字列）
+  },
   cases: {
-    case01: { q1:"", q2:"", q3:"", q4:"", q5:"" },
-    case02: { q1:"", q2:"", q3:"", q4:"", q5:"" },
-  }
+    case01: { q: ["", "", "", ""], free: "", seenB: false },
+    case02: { q: ["", "", "", ""], free: "", seenB: false },
+  },
 };
 
-function curCaseId() {
-  return CASES[caseIndex].id;
+// ===============================
+// 永続化
+// ===============================
+function loadState() {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) state = JSON.parse(saved);
+  } catch {}
 }
-function metaUrl() {
-  return `./${curCaseId()}/meta.json`;
+function saveState() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  } catch {}
 }
+
+// ===============================
+// PVビューア
+// ===============================
 function caseDir() {
-  return `./${curCaseId()}`;
+  return `./${CASES[step - 1].id}`;
 }
 function getFrames() {
   if (!meta?.frames) return [];
   return meta.frames[lineKind] || [];
 }
 
-function setActive(btnIds, activeId) {
-  btnIds.forEach(id => $(id).classList.toggle("active", id === activeId));
-}
-
-function showStep() {
-  $("stepExp").style.display = (step === "exp") ? "" : "none";
-  $("stepCase").style.display = (step === "case") ? "" : "none";
-}
-
-function renderHeader() {
-  if (step === "exp") {
-    $("pageTitle").textContent = "将棋 悪手アンケート（経験アンケート）";
-    return;
-  }
-  const c = CASES[caseIndex];
-  const s = meta ? `（${c.title} / ${caseIndex + 1} / ${CASES.length}）` : `（${c.title}）`;
-  $("pageTitle").textContent = `将棋 悪手アンケート ${s}`;
-}
-
-function renderCaseInfo() {
-  if (!meta) {
-    $("caseInfo").textContent = "";
-    return;
-  }
-  const ply = meta.ply ?? "";
-  const side = meta.side ?? "";
-  const move = meta.move_kif ?? "";
-  $("caseInfo").textContent = `手数: ${ply}　指した側: ${side}　手: ${move}`;
-}
-
-function renderSeen() {
-  const cid = curCaseId();
-  const a = !!(seen[cid]?.A);
-  const b = !!(seen[cid]?.B);
-  $("seenBadge").textContent = `解説閲覧：A ${a ? "✓" : "×"} / B ${b ? "✓" : "×"}`;
-}
-
-function render() {
-  renderHeader();
-  showStep();
-
-  if (step !== "case") return;
-
+function renderViewer() {
   const frames = getFrames();
   if (!frames.length) {
     $("frameLabel").textContent = "（framesが空です：meta.json を確認してください）";
     return;
   }
-
   frameIdx = Math.max(0, Math.min(frameIdx, frames.length - 1));
   const fr = frames[frameIdx];
 
@@ -123,225 +109,272 @@ function render() {
   $("frameSlider").value = String(frameIdx);
   $("frameCount").textContent = `${frameIdx + 1} / ${frames.length}`;
 
+  // 解説（Aは最初から表示＝閲覧済み扱い）
   const txt = meta?.llm_text?.[expKind] ?? "";
   $("expTitle").textContent = `解説${expKind}`;
   $("expText").textContent = txt || "（meta.json の llm_text に A/B を入れるとここに表示されます）";
 
-  renderCaseInfo();
-  renderSeen();
-
-  // 進むボタンの状態
-  updateNextButtonState();
+  // B を見たかどうか
+  const cId = CASES[step - 1].id;
+  $("seenB").textContent = state.cases[cId].seenB ? "OK" : "未";
+  $("btnNextCase").disabled = !canGoNextFromCase();
 }
 
-async function loadCase(idx) {
-  caseIndex = idx;
-  const cid = curCaseId();
-  if (!seen[cid]) seen[cid] = { A:false, B:false };
-
-  // リセット
+async function loadCaseMeta(caseId) {
+  // 読み込み時は先頭へ
   lineKind = "bad";
   expKind = "A";
   frameIdx = 0;
-  setActive(["btnBad","btnBest"], "btnBad");
-  setActive(["btnExpA","btnExpB"], "btnExpA");
+  setActive(["btnBad", "btnBest"], "btnBad");
+  setActive(["btnExpA", "btnExpB"], "btnExpA");
 
-  // 回答UIに前回値を復元
-  restoreCaseForm(cid);
-
-  const res = await fetch(metaUrl(), { cache: "no-store" });
+  const res = await fetch(`./${caseId}/meta.json`, { cache: "no-store" });
   meta = await res.json();
-  render();
+  renderViewer();
 }
 
-function getRadioVal(name) {
-  const el = document.querySelector(`input[name="${name}"]:checked`);
-  return el ? el.value : "";
+function setActive(btnIds, activeId) {
+  btnIds.forEach((id) => $(id).classList.toggle("active", id === activeId));
 }
 
-function setRadioVal(name, value) {
-  const els = document.querySelectorAll(`input[name="${name}"]`);
-  els.forEach(r => r.checked = (r.value === value));
+// ===============================
+// 画面レンダリング
+// ===============================
+function renderScreen() {
+  $("screenProfile").classList.toggle("hide", step !== 0);
+  $("screenCase").classList.toggle("hide", step === 0 || step >= 3);
+  $("screenThanks").classList.toggle("hide", step !== 3);
+
+  // ヘッダ進捗
+  if (step === 0) {
+    $("progress").textContent = "経験アンケート";
+  } else if (step >= 1 && step <= CASES.length) {
+    $("progress").textContent = `${CASES[step - 1].title}（${step} / ${CASES.length}）`;
+  } else {
+    $("progress").textContent = "完了";
+  }
+
+  // プロフィール画面の値復元
+  if (step === 0) {
+    $("studentId").value = state.profile.studentId || "";
+    $("grade").value = state.profile.grade || "";
+    // exp radio
+    for (let i = 0; i < EXP_CHOICES.length; i++) {
+      const r = $(`exp_${i}`);
+      r.checked = (state.profile.expQ1 === EXP_CHOICES[i]);
+    }
+    $("btnToCase1").disabled = !canGoNextFromProfile();
+  }
+
+  // ケース画面の値復元
+  if (step >= 1 && step <= CASES.length) {
+    const cId = CASES[step - 1].id;
+    const ans = state.cases[cId];
+
+    // 評価ラジオ
+    for (let qi = 0; qi < 4; qi++) {
+      const v = ans.q[qi];
+      for (let s = 1; s <= 5; s++) {
+        const el = $(`q${qi + 1}_${s}`);
+        el.checked = (String(v) === String(s));
+      }
+    }
+    $("freeText").value = ans.free || "";
+
+    // B既読表示
+    $("seenB").textContent = ans.seenB ? "OK" : "未";
+    $("btnNextCase").disabled = !canGoNextFromCase();
+  }
 }
 
-function restoreCaseForm(cid) {
-  const a = answers.cases[cid] || {q1:"",q2:"",q3:"",q4:"",q5:""};
-  setRadioVal("c_q1", a.q1);
-  setRadioVal("c_q2", a.q2);
-  setRadioVal("c_q3", a.q3);
-  setRadioVal("c_q4", a.q4);
-  $("c_q5").value = a.q5 || "";
+// ===============================
+// バリデーション
+// ===============================
+function canGoNextFromProfile() {
+  const p = state.profile;
+  return !!(p.studentId && p.grade && p.expQ1);
 }
 
-function saveCaseForm(cid) {
-  answers.cases[cid] = {
-    q1: getRadioVal("c_q1"),
-    q2: getRadioVal("c_q2"),
-    q3: getRadioVal("c_q3"),
-    q4: getRadioVal("c_q4"),
-    q5: ($("c_q5").value || "").trim(),
-  };
+function canGoNextFromCase() {
+  const cId = CASES[step - 1].id;
+  const ans = state.cases[cId];
+
+  // 4問の評価が全部埋まっている + 解説Bを1回見た
+  const allRated = ans.q.every((x) => ["1","2","3","4","5"].includes(String(x)));
+  return allRated && ans.seenB;
 }
 
-function validateCaseReady(cid) {
-  const a = answers.cases[cid];
-  if (!a) return false;
-  const seenA = !!seen[cid]?.A;
-  const seenB = !!seen[cid]?.B;
-  const hasScale =
-    a.q1 && a.q2 && a.q3 && a.q4;
-  return seenA && seenB && hasScale;
+// ===============================
+// state更新（入力イベント）
+// ===============================
+function wireProfileInputs() {
+  $("studentId").addEventListener("input", (e) => {
+    state.profile.studentId = e.target.value.trim();
+    saveState();
+    $("btnToCase1").disabled = !canGoNextFromProfile();
+  });
+
+  $("grade").addEventListener("change", (e) => {
+    state.profile.grade = e.target.value;
+    saveState();
+    $("btnToCase1").disabled = !canGoNextFromProfile();
+  });
+
+  for (let i = 0; i < EXP_CHOICES.length; i++) {
+    $(`exp_${i}`).addEventListener("change", (e) => {
+      if (e.target.checked) {
+        state.profile.expQ1 = EXP_CHOICES[i];
+        saveState();
+        $("btnToCase1").disabled = !canGoNextFromProfile();
+      }
+    });
+  }
 }
 
-function updateNextButtonState() {
-  const cid = curCaseId();
-  saveCaseForm(cid);
-  const ok = validateCaseReady(cid);
+function wireCaseInputs() {
+  // 評価4問
+  for (let qi = 0; qi < 4; qi++) {
+    for (let s = 1; s <= 5; s++) {
+      $(`q${qi + 1}_${s}`).addEventListener("change", (e) => {
+        const cId = CASES[step - 1].id;
+        state.cases[cId].q[qi] = String(s);
+        saveState();
+        $("btnNextCase").disabled = !canGoNextFromCase();
+      });
+    }
+  }
 
-  const isLast = (caseIndex === CASES.length - 1);
-  $("nextCaseBtn").disabled = !ok;
-
-  $("nextCaseBtn").textContent = isLast ? "送信して終了" : "次の局面へ";
+  $("freeText").addEventListener("input", (e) => {
+    const cId = CASES[step - 1].id;
+    state.cases[cId].free = e.target.value;
+    saveState();
+  });
 }
 
-function collectExp() {
-  answers.exp.studentId = ($("studentId").value || "").trim();
-  answers.exp.grade = $("grade").value || "";
-  answers.exp.expLevel = getRadioVal("expLevel");
-
-  return answers.exp;
-}
-
-function validateExp() {
-  const e = collectExp();
-  return !!(e.studentId && e.grade && e.expLevel);
-}
-
-function buildFormDataAll() {
+// ===============================
+// 送信（最後に1回だけ）
+// ===============================
+async function submitAll() {
   const fd = new FormData();
 
   // 経験
-  fd.append(ENTRY.studentId, answers.exp.studentId);
-  fd.append(ENTRY.grade, answers.exp.grade);
-  fd.append(ENTRY.expLevel, answers.exp.expLevel);
+  fd.append(ENTRY.studentId, state.profile.studentId);
+  fd.append(ENTRY.grade, state.profile.grade);
+  fd.append(ENTRY.expQ1, state.profile.expQ1);
 
-  // 局面1/2
-  for (const c of CASES) {
-    const cid = c.id;
-    const ent = ENTRY[cid];
-    const a = answers.cases[cid];
+  // 局面1
+  fd.append(ENTRY.c1_q1, state.cases.case01.q[0]);
+  fd.append(ENTRY.c1_q2, state.cases.case01.q[1]);
+  fd.append(ENTRY.c1_q3, state.cases.case01.q[2]);
+  fd.append(ENTRY.c1_q4, state.cases.case01.q[3]);
+  fd.append(ENTRY.c1_free, state.cases.case01.free || "");
 
-    fd.append(ent.q1, a.q1);
-    fd.append(ent.q2, a.q2);
-    fd.append(ent.q3, a.q3);
-    fd.append(ent.q4, a.q4);
-    if (a.q5) fd.append(ent.q5, a.q5);
+  // 局面2
+  fd.append(ENTRY.c2_q1, state.cases.case02.q[0]);
+  fd.append(ENTRY.c2_q2, state.cases.case02.q[1]);
+  fd.append(ENTRY.c2_q3, state.cases.case02.q[2]);
+  fd.append(ENTRY.c2_q4, state.cases.case02.q[3]);
+  fd.append(ENTRY.c2_free, state.cases.case02.free || "");
+
+  // 念のため（なくても動くことが多いけど安全策）
+  fd.append("submit", "Submit");
+
+  // no-cors だと成功/失敗を読めない（Google Forms仕様）
+  await fetch(FORM_ACTION, { method: "POST", mode: "no-cors", body: fd });
+}
+
+// ===============================
+// 初期化
+// ===============================
+async function init() {
+  // すでに送信済みなら完了画面
+  if (localStorage.getItem(LS_SUBMITTED) === "1") {
+    step = 3;
+    renderScreen();
+    return;
   }
 
-  return fd;
-}
+  loadState();
+  renderScreen();
+  wireProfileInputs();
+  wireCaseInputs();
 
-async function submitAll() {
-  const fd = buildFormDataAll();
-
-  // 送信（no-corsなので成功判定はできない。回答タブで確認）
-  await fetch(FORM_ACTION, {
-    method: "POST",
-    mode: "no-cors",
-    body: fd
-  });
-
-  // 二重送信を軽く抑止
-  localStorage.setItem("shogi_survey_submitted", String(Date.now()));
-
-  $("doneBox").style.display = "";
-  $("nextCaseBtn").disabled = true;
-  $("nextCaseBtn").textContent = "送信済み";
-}
-
-function bindEvents() {
-  // 経験→次へ
-  $("toCaseBtn").addEventListener("click", async () => {
-    $("expErr").textContent = "";
-    if (!validateExp()) {
-      $("expErr").textContent = "学籍番号・学年・経験Q1 を入力してください。";
-      return;
-    }
-    step = "case";
-    await loadCase(0);
-  });
-
-  // PV切替
+  // PV操作
   $("btnBad").addEventListener("click", () => {
     lineKind = "bad";
-    setActive(["btnBad","btnBest"], "btnBad");
+    setActive(["btnBad", "btnBest"], "btnBad");
     frameIdx = 0;
-    render();
+    renderViewer();
   });
   $("btnBest").addEventListener("click", () => {
     lineKind = "best";
-    setActive(["btnBad","btnBest"], "btnBest");
+    setActive(["btnBad", "btnBest"], "btnBest");
     frameIdx = 0;
-    render();
+    renderViewer();
   });
 
-  // 解説切替（閲覧チェックもここで付ける）
   $("btnExpA").addEventListener("click", () => {
     expKind = "A";
-    seen[curCaseId()].A = true;
-    setActive(["btnExpA","btnExpB"], "btnExpA");
-    render();
+    setActive(["btnExpA", "btnExpB"], "btnExpA");
+    renderViewer();
   });
+
   $("btnExpB").addEventListener("click", () => {
     expKind = "B";
-    seen[curCaseId()].B = true;
-    setActive(["btnExpA","btnExpB"], "btnExpB");
-    render();
+    setActive(["btnExpA", "btnExpB"], "btnExpB");
+
+    // Bを見たフラグ
+    const cId = CASES[step - 1].id;
+    state.cases[cId].seenB = true;
+    saveState();
+
+    renderViewer();
   });
 
-  // 盤面操作
-  $("prevBtn").addEventListener("click", () => { frameIdx--; render(); });
-  $("nextBtn").addEventListener("click", () => { frameIdx++; render(); });
+  $("prevBtn").addEventListener("click", () => { frameIdx--; renderViewer(); });
+  $("nextBtn").addEventListener("click", () => { frameIdx++; renderViewer(); });
   $("frameSlider").addEventListener("input", (e) => {
     frameIdx = Number(e.target.value);
-    render();
+    renderViewer();
   });
 
-  // アンケート入力でボタン更新
-  ["c_q5"].forEach(id => $(id).addEventListener("input", updateNextButtonState));
-  document.querySelectorAll('input[name="c_q1"],input[name="c_q2"],input[name="c_q3"],input[name="c_q4"]')
-    .forEach(el => el.addEventListener("change", updateNextButtonState));
+  // 進行ボタン
+  $("btnToCase1").addEventListener("click", async () => {
+    if (!canGoNextFromProfile()) return;
+    step = 1;
+    renderScreen();
+    await loadCaseMeta(CASES[0].id);
+  });
 
-  // 次の局面へ（最後は送信）
-  $("nextCaseBtn").addEventListener("click", async () => {
-    const cid = curCaseId();
-    saveCaseForm(cid);
+  $("btnNextCase").addEventListener("click", async () => {
+    if (!canGoNextFromCase()) return;
 
-    if (!validateCaseReady(cid)) {
-      $("caseErr").textContent = "解説A→解説Bを読んだ上で、Q1〜Q4を回答してください。";
+    // 次の局面へ
+    if (step < CASES.length) {
+      step++;
+      renderScreen();
+      await loadCaseMeta(CASES[step - 1].id);
       return;
     }
-    $("caseErr").textContent = "";
 
-    const isLast = (caseIndex === CASES.length - 1);
-    if (isLast) {
+    // 最後なら送信
+    $("btnNextCase").disabled = true;
+    $("btnNextCase").textContent = "送信中…";
+
+    try {
       await submitAll();
-      return;
+      localStorage.setItem(LS_SUBMITTED, "1");
+      step = 3;
+      renderScreen();
+    } catch (e) {
+      $("btnNextCase").disabled = false;
+      $("btnNextCase").textContent = "送信して終了";
+      alert("送信でエラーが起きました。ネット接続を確認してもう一度試してください。");
     }
-    await loadCase(caseIndex + 1);
   });
-}
 
-async function init() {
-  // 送信済みならロック（軽い抑止）
-  const already = localStorage.getItem("shogi_survey_submitted");
-  if (already) {
-    $("alreadyBox").style.display = "";
-  }
-
-  bindEvents();
-  renderHeader();
-  showStep();
+  // プロフィール画面の次へ状態
+  $("btnToCase1").disabled = !canGoNextFromProfile();
 }
 
 init();
