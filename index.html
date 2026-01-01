@@ -9,97 +9,115 @@
 <body>
   <header class="bar">
     <div class="brand">将棋 解説アンケート</div>
-    <div class="small" id="progressText"></div>
   </header>
 
-  <div class="wrapSingle">
-    <!-- エラー表示 -->
-    <div class="panel hidden" id="fatalBox">
-      <div class="h">エラー</div>
-      <div id="fatalText" class="note"></div>
-      <div class="note">（この画面が出たら、まず Ctrl+F5 でスーパーリロードしてください）</div>
-    </div>
+  <main class="container">
 
-    <!-- 事前アンケート -->
-    <section class="panel" id="screenPre">
-      <div class="h big">事前アンケート（将棋経験）</div>
+    <!-- =========================
+         事前アンケート
+    ========================== -->
+    <section class="panel" id="pagePre">
+      <h2 class="panelTitle">事前アンケート（将棋経験）</h2>
 
-      <div class="note">
-        このアンケートは、<b>将棋の局面（画像）</b>と<b>解説A / 解説B</b>を読み比べて評価するものです。<br>
-        まずは、学籍番号・学年などの基本情報と、将棋経験について回答してください。
+      <div class="noteBox">
+        <p class="noteText">
+          このアンケートは、将棋の局面（画像）と「解説A / 解説B」を読み比べて評価するものです。<br>
+          まずは、学籍番号・学年などの基本情報と、将棋経験について回答してください。
+        </p>
       </div>
 
       <div class="formGrid">
-        <label class="field">
-          <div class="label">学籍番号（必須）</div>
-          <input id="preStudentId" type="text" inputmode="numeric" placeholder="例：1234567" />
-        </label>
-
-        <label class="field">
-          <div class="label">学年（必須）</div>
-          <select id="preGrade">
-            <option value="">選択してください</option>
-            <option>1年</option>
-            <option>2年</option>
-            <option>3年</option>
-            <option>4年</option>
-            <option>院1年</option>
-            <option>院2年</option>
-            <option>その他</option>
-          </select>
-        </label>
+        <div class="field">
+          <label class="label" for="studentId">学籍番号（必須）</label>
+          <input id="studentId" class="input" type="text" placeholder="例：1234567" />
+        </div>
 
         <div class="field">
-          <div class="label">Q1. 将棋経験として最も近いものを1つ選ぶ（必須）</div>
-          <div class="radioCol" id="preExpGroup">
-            <label class="radioItem">
-              <input type="radio" name="preExp" value="将棋はほとんど指したことがない（ルールもあいまい／対局経験がほぼない）">
-              <span>将棋はほとんど指したことがない（ルールもあいまい／対局経験がほぼない）</span>
-            </label>
-
-            <label class="radioItem">
-              <input type="radio" name="preExp" value="将棋は少し指したことがある（たまに指す程度、継続的ではない）">
-              <span>将棋は少し指したことがある（たまに指す程度、継続的ではない）</span>
-            </label>
-
-            <label class="radioItem">
-              <input type="radio" name="preExp" value="将棋を継続的に指している、または過去に継続的に指していた時期がある（オンライン／対面は問わない）">
-              <span>将棋を継続的に指している、または過去に継続的に指していた時期がある（オンライン／対面は問わない）</span>
-            </label>
-
-            <label class="radioItem">
-              <input type="radio" name="preExp" value="将棋部・道場・大会参加など、継続的な活動経験がある（現在／過去を含む）">
-              <span>将棋部・道場・大会参加など、継続的な活動経験がある（現在／過去を含む）</span>
-            </label>
-          </div>
+          <label class="label" for="grade">学年（必須）</label>
+          <select id="grade" class="select">
+            <option value="">選択してください</option>
+            <option value="1年">1年</option>
+            <option value="2年">2年</option>
+            <option value="3年">3年</option>
+            <option value="4年">4年</option>
+            <option value="院1年">院1年</option>
+            <option value="院2年">院2年</option>
+            <option value="その他">その他</option>
+          </select>
         </div>
       </div>
 
-      <div class="rowEnd">
-        <button class="btn primary" id="btnPreNext" type="button">次へ（局面へ進む）</button>
+      <div class="field">
+        <div class="label">Q1. 将棋経験として最も近いものを1つ選ぶ（必須）</div>
+
+        <!-- ★ここが「表記ぶっ飛び」を起こしやすいので、ラジオを自前で整形 -->
+        <div class="radioList" id="expList">
+          <label class="radioItem">
+            <input type="radio" name="exp" value="将棋はほとんど指したことがない（ルールもあいまい／対局経験がほぼない）">
+            <span>将棋はほとんど指したことがない（ルールもあいまい／対局経験がほぼない）</span>
+          </label>
+
+          <label class="radioItem">
+            <input type="radio" name="exp" value="将棋は少し指したことがある（たまに指す程度、継続的ではない）">
+            <span>将棋は少し指したことがある（たまに指す程度、継続的ではない）</span>
+          </label>
+
+          <label class="radioItem">
+            <input type="radio" name="exp" value="将棋を継続的に指している、または過去に継続的に指していた時期がある（オンライン／対面は問わない）">
+            <span>将棋を継続的に指している、または過去に継続的に指していた時期がある（オンライン／対面は問わない）</span>
+          </label>
+
+          <label class="radioItem">
+            <input type="radio" name="exp" value="将棋部・道場・大会参加など、継続的な活動経験がある（現在／過去を含む）">
+            <span>将棋部・道場・大会参加など、継続的な活動経験がある（現在／過去を含む）</span>
+          </label>
+        </div>
       </div>
 
-      <div class="note warn hidden" id="preWarn"></div>
+      <div class="actions">
+        <button class="btnPrimary" id="btnStart">次へ（局面へ進む）</button>
+        <div class="err" id="preErr"></div>
+      </div>
     </section>
 
-    <!-- 局面 -->
-    <section class="hidden" id="screenCase">
-      <main class="wrap">
-        <!-- 左：盤面 -->
-        <section class="panel">
-          <div class="caseHeader">
-            <div class="caseTitle" id="caseTitle">局面1</div>
-          </div>
+    <!-- =========================
+         局面ページ
+    ========================== -->
+    <section class="panel" id="pageCase" style="display:none;">
+      <div class="caseHeader">
+        <h2 class="panelTitle" id="caseTitle">局面1</h2>
+        <div class="progress" id="caseProgress">1 / 2</div>
+      </div>
 
-          <div class="row">
+      <!-- 回答方法（★枠で上に出す） -->
+      <div class="noteBox">
+        <div class="noteTitle">回答方法</div>
+        <ul class="noteList">
+          <li>① まず <b>解説A → 解説B</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。</li>
+          <li>② PV（局面の推移）は「悪手後PV / 最善手後PV」で切り替えできます。スライダー（または←→）で局面が動きます。PVを見るかどうかは任意です。</li>
+          <li>③ 評価は 1〜5 で回答します。<br>
+              <b>1＝解説Aの方が当てはまる</b> ／ <b>5＝解説Bの方が当てはまる</b> ／ 3＝同程度</li>
+          <li>④ 回答が終わったら「回答して次へ」を押してください。</li>
+        </ul>
+      </div>
+
+      <div class="caseGrid">
+        <!-- 左：盤面 -->
+        <section class="caseLeft">
+          <div class="segRow">
             <div class="seg">
-              <button class="seg-btn active" id="btnBad" type="button">悪手後PV</button>
-              <button class="seg-btn" id="btnBest" type="button">最善手後PV</button>
+              <button class="segBtn active" id="btnBad">悪手後PV</button>
+              <button class="segBtn" id="btnBest">最善手後PV</button>
             </div>
 
             <div class="seg">
-              <button class="seg-btn active" id="btnExpA" type="button">解説A</button>
-              <button class="seg-btn" id="btnExpB" type="button">解説B</button>
+              <button class="segBtn active" id="btnExpA">解説A</button>
+              <button class="segBtn" id="btnExpB">解説B</button>
+            </div>
+
+            <div class="seen">
+              <span class="badge" id="seenA">A：未</span>
+              <span class="badge" id="seenB">B：未</span>
             </div>
           </div>
 
@@ -110,99 +128,72 @@
           <div class="labelBox" id="frameLabel"></div>
 
           <div class="sliderRow">
-            <button class="btn" id="prevBtn" type="button">←</button>
+            <button class="btn" id="prevBtn">←</button>
             <input id="frameSlider" type="range" min="0" max="0" value="0" step="1" />
-            <button class="btn" id="nextBtn" type="button">→</button>
+            <button class="btn" id="nextBtn">→</button>
             <div class="small" id="frameCount"></div>
           </div>
         </section>
 
-        <!-- 右：回答方法＋解説＋アンケ -->
-        <aside class="panel">
-          <div class="help">
-            <div class="h big">回答方法</div>
-
-            <div class="note">
-              <b>① 解説は「A → B」の順に読んでください。</b><br>
-              その後は、A/Bを読み直してもOKです。
-            </div>
-
-            <div class="note">
-              <b>② PV（局面の推移）について</b><br>
-              ・「悪手後PV」＝ 実戦で悪手を指した後の読み筋（推移）<br>
-              ・「最善手後PV」＝ 最善手を指した場合の読み筋（推移）<br>
-              ・スライダー（← →）で局面を切り替えられます。<br>
-              ※PVを見るかどうかは任意です（必要なら動かしてください）。
-            </div>
-
-            <div class="note">
-              <b>③ 評価の答え方（1〜5）</b><br>
-              1 = 「解説Aの方が当てはまる」 ／ 5 = 「解説Bの方が当てはまる」<br>
-              3 は同程度です。
-            </div>
-
-            <div class="note">
-              <b>④ 回答が終わったら「回答して次へ」を押してください。</b>
-            </div>
-          </div>
-
+        <!-- 右：解説＋アンケ -->
+        <aside class="caseRight">
           <div class="textBox">
             <div class="h" id="expTitle">解説A</div>
             <pre id="expText"></pre>
           </div>
 
-          <div class="panelInner">
-            <div class="h big" id="caseSurveyTitle">解説評価アンケート</div>
-
-            <div class="note warn" id="viewWarn"></div>
+          <div class="surveyBox">
+            <h3 class="h">解説評価アンケート（<span id="caseTitleInline">局面1</span>）</h3>
 
             <div class="q">
-              <div class="qtitle">Q1. 日本語として自然だと感じるのはどちらですか。</div>
-              <div class="scale" data-q="q1"></div>
+              <div class="qTitle">Q1. 日本語として自然だと感じるのはどちらですか。</div>
+              <div class="scale" id="q1Scale"></div>
             </div>
 
             <div class="q">
-              <div class="qtitle">Q2. なぜ悪手なのかを理解しやすいのはどちらですか。</div>
-              <div class="scale" data-q="q2"></div>
+              <div class="qTitle">Q2. なぜ悪手なのかを理解しやすいのはどちらですか。</div>
+              <div class="scale" id="q2Scale"></div>
             </div>
 
             <div class="q">
-              <div class="qtitle">Q3. 局面の状況を正しく説明していると感じるのはどちらですか。</div>
-              <div class="scale" data-q="q3"></div>
+              <div class="qTitle">Q3. 局面の状況を正しく説明していると感じるのはどちらですか。</div>
+              <div class="scale" id="q3Scale"></div>
             </div>
 
             <div class="q">
-              <div class="qtitle">Q4. 将棋の振り返り・上達に役立つと感じるのはどちらですか。</div>
-              <div class="scale" data-q="q4"></div>
+              <div class="qTitle">Q4. 将棋の振り返り・上達に役立つと感じるのはどちらですか。</div>
+              <div class="scale" id="q4Scale"></div>
             </div>
 
             <div class="q">
-              <div class="qtitle">Q5. 気づいた点、分かりにくかった点、改善案など（任意）</div>
-              <textarea id="freeText" placeholder="自由記述（任意）"></textarea>
+              <div class="qTitle">Q5. 気づいた点（任意）</div>
+              <textarea id="q5Text" class="textarea" rows="5" placeholder="分かりにくかった点、改善案など"></textarea>
             </div>
 
-            <div class="rowEnd">
-              <button class="btn primary" id="btnCaseNext" type="button">回答して次へ</button>
+            <div class="actions">
+              <button class="btnPrimary" id="btnNextCase">回答して次へ</button>
+              <div class="err" id="caseErr"></div>
             </div>
           </div>
-
-          <div class="note warn hidden" id="caseWarn"></div>
         </aside>
-      </main>
+      </div>
     </section>
 
-    <!-- 送信中 -->
-    <section class="panel hidden" id="screenSending">
-      <div class="h big">送信中…</div>
-      <div class="note">このまま少し待ってください。</div>
+    <!-- =========================
+         完了ページ
+    ========================== -->
+    <section class="panel" id="pageThanks" style="display:none;">
+      <h2 class="panelTitle">送信しました</h2>
+      <div class="noteBox">
+        <p class="noteText">ご協力ありがとうございました！</p>
+      </div>
     </section>
 
-    <!-- 完了 -->
-    <section class="panel hidden" id="screenThanks">
-      <div class="h big">回答ありがとうございました！</div>
-      <div class="note">送信が完了しました。ご協力ありがとうございます。</div>
-    </section>
-  </div>
+    <!-- Google Forms 送信用（隠しフォーム） -->
+    <iframe name="hidden_iframe" style="display:none;"></iframe>
+    <form id="gForm" method="POST" target="hidden_iframe" style="display:none;"></form>
+
+  </main>
 
   <script src="./app.js"></script>
 </body>
