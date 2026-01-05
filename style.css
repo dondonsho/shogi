@@ -15,6 +15,14 @@ body {
 }
 .brand { font-weight: 800; }
 
+/* ★追加：ヘッダー内の左右配置（brand / 最初からボタン） */
+.barInner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -97,6 +105,7 @@ body {
   align-items: center;
   gap: 12px;
   margin-top: 12px;
+  flex-wrap: wrap;
 }
 .err { color: #b91c1c; font-size: 13px; }
 
