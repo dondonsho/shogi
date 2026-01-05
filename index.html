@@ -8,7 +8,10 @@
 </head>
 <body>
   <header class="bar">
-    <div class="brand">将棋 解説アンケート</div>
+    <div class="barInner">
+      <div class="brand">将棋 解説アンケート</div>
+      <button class="btn" id="btnReset" type="button">最初から</button>
+    </div>
   </header>
 
   <main class="container">
@@ -75,7 +78,8 @@
       </div>
 
       <div class="actions">
-        <button class="btnPrimary" id="btnStart">次へ（局面へ進む）</button>
+        <button class="btnPrimary" id="btnStart" type="button">次へ（局面へ進む）</button>
+        <button class="btn" id="btnResume" type="button" style="display:none;">途中から再開</button>
         <div class="err" id="preErr"></div>
       </div>
     </section>
@@ -86,7 +90,7 @@
     <section class="panel" id="pageCase" style="display:none;">
       <div class="caseHeader">
         <h2 class="panelTitle" id="caseTitle">局面1</h2>
-        <div class="progress" id="caseProgress">1 / 2</div>
+        <div class="progress" id="caseProgress">1 / 6</div>
       </div>
 
       <!-- 回答方法（★枠で上に出す） -->
@@ -106,13 +110,13 @@
         <section class="caseLeft">
           <div class="segRow">
             <div class="seg">
-              <button class="segBtn active" id="btnBad">悪手後PV</button>
-              <button class="segBtn" id="btnBest">最善手後PV</button>
+              <button class="segBtn active" id="btnBad" type="button">悪手後PV</button>
+              <button class="segBtn" id="btnBest" type="button">最善手後PV</button>
             </div>
 
             <div class="seg">
-              <button class="segBtn active" id="btnExpA">解説A</button>
-              <button class="segBtn" id="btnExpB">解説B</button>
+              <button class="segBtn active" id="btnExpA" type="button">解説A</button>
+              <button class="segBtn" id="btnExpB" type="button">解説B</button>
             </div>
 
             <div class="seen">
@@ -128,9 +132,9 @@
           <div class="labelBox" id="frameLabel"></div>
 
           <div class="sliderRow">
-            <button class="btn" id="prevBtn">←</button>
+            <button class="btn" id="prevBtn" type="button">←</button>
             <input id="frameSlider" type="range" min="0" max="0" value="0" step="1" />
-            <button class="btn" id="nextBtn">→</button>
+            <button class="btn" id="nextBtn" type="button">→</button>
             <div class="small" id="frameCount"></div>
           </div>
         </section>
@@ -171,7 +175,7 @@
             </div>
 
             <div class="actions">
-              <button class="btnPrimary" id="btnNextCase">回答して次へ</button>
+              <button class="btnPrimary" id="btnNextCase" type="button">回答して次へ</button>
               <div class="err" id="caseErr"></div>
             </div>
           </div>
