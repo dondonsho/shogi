@@ -1,44 +1,145 @@
 const $ = (id) => document.getElementById(id);
 
+/**
+ * ============================
+ * 6局面ぶんの設定
+ * - folder: case01 ... case06 のフォルダ名
+ * - entry: Google Form の entry ID（あなたのURLに入っていた値を転記）
+ * ============================
+ */
 const CASES = [
-  // ★ いまは2局面で運用してる前提（6に増やす時はここに追加）
   {
     id: "case01",
     title: "局面1",
     folder: "case01",
-    entry: { q1: "entry.179074931", q2: "entry.94393688", q3: "entry.103223312", q4: "entry.1462974134", q5: "entry.965249262" }
+    entry: {
+      q1: "entry.179074931",
+      q2: "entry.94393688",
+      q3: "entry.103223312",
+      q4: "entry.1462974134",
+      q5: "entry.965249262",
+    },
   },
   {
     id: "case02",
     title: "局面2",
     folder: "case02",
-    entry: { q1: "entry.131585168", q2: "entry.1860590575", q3: "entry.927062088", q4: "entry.1346505265", q5: "entry.1951216814" }
-  }
+    entry: {
+      q1: "entry.131585168",
+      q2: "entry.1860590575",
+      q3: "entry.927062088",
+      q4: "entry.1346505265",
+      q5: "entry.1951216814",
+    },
+  },
+  {
+    id: "case03",
+    title: "局面3",
+    folder: "case03",
+    entry: {
+      q1: "entry.921567182",
+      q2: "entry.1107087899",
+      q3: "entry.169646057",
+      q4: "entry.2127821720",
+      q5: "entry.1789844425",
+    },
+  },
+  {
+    id: "case04",
+    title: "局面4",
+    folder: "case04",
+    entry: {
+      q1: "entry.1544748679",
+      q2: "entry.2054195806",
+      q3: "entry.1351258754",
+      q4: "entry.2141137530",
+      q5: "entry.763245396",
+    },
+  },
+  {
+    id: "case05",
+    title: "局面5",
+    folder: "case05",
+    entry: {
+      q1: "entry.102699849",
+      q2: "entry.2092186421",
+      q3: "entry.1572806328",
+      q4: "entry.1119128466",
+      q5: "entry.1077736227",
+    },
+  },
+  {
+    id: "case06",
+    title: "局面6",
+    folder: "case06",
+    entry: {
+      q1: "entry.1063470756",
+      q2: "entry.894430216",
+      q3: "entry.1703357107",
+      q4: "entry.1959257455",
+      q5: "entry.1469017175",
+    },
+  },
 ];
 
 // Google Form（formResponse）
-const FORM_ACTION = "https://docs.google.com/forms/d/e/1FAIpQLSfgKJORGMzF8J1E3uZXLLn80tkNMhhxfA5y4gGI33o3fOby-A/formResponse";
+const FORM_ACTION =
+  "https://docs.google.com/forms/d/e/1FAIpQLSfgKJORGMzF8J1E3uZXLLn80tkNMhhxfA5y4gGI33o3fOby-A/formResponse";
 
 // 事前アンケートの entry
 const ENTRY_PRE = {
   studentId: "entry.83230582",
   grade: "entry.907422778",
-  exp: "entry.884953881"
+  exp: "entry.884953881",
 };
+
+/**
+ * ============================
+ * 途中再開用（localStorage）
+ * ============================
+ */
+const STORAGE_KEY = "shogi_survey_state_v1";
+
+function saveState(phase) {
+  try {
+    const payload = {
+      phase, // "pre" | "case" | "thanks"
+      currentCaseIdx,
+      answers,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (e) {
+    // 保存できなくても致命ではないので黙って続行
+  }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+function clearState() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {}
+}
 
 let currentCaseIdx = -1;
 let meta = null;
 
 let lineKind = "bad"; // bad / best
-let expKind = "A";    // A / B
+let expKind = "A"; // A / B
 let frameIdx = 0;
 
 const metaCache = new Map();
 
-// 回答データを保持（最後にまとめて1回だけ送信）
+// 回答データ（最後にまとめて1回だけ送信）
 const answers = {
   pre: { studentId: "", grade: "", exp: "" },
-  cases: {} // caseId -> {q1..q5}
+  cases: {}, // caseId -> {q1..q5}
 };
 
 // 解説閲覧（Aは最初から表示＝閲覧扱い、Bはクリック必須）
@@ -46,7 +147,7 @@ let seenA = false;
 let seenB = false;
 
 function setActive(btnIds, activeId) {
-  btnIds.forEach(id => $(id).classList.toggle("active", id === activeId));
+  btnIds.forEach((id) => $(id).classList.toggle("active", id === activeId));
 }
 
 function metaUrl(caseObj) {
@@ -68,7 +169,10 @@ function updateSeenBadges() {
 function render() {
   const frames = getFrames();
   if (!frames.length) {
-    $("frameLabel").textContent = "（framesが空です：meta.json を確認してください）";
+    $("frameLabel").textContent =
+      "（framesが空です：meta.json を確認してください）";
+    $("boardImg").removeAttribute("src");
+    $("frameCount").textContent = "";
     return;
   }
 
@@ -89,7 +193,8 @@ function render() {
   // 解説
   const txt = meta?.llm_text?.[expKind] ?? "";
   $("expTitle").textContent = `解説${expKind}`;
-  $("expText").textContent = txt || "（meta.json の llm_text に A/B を入れるとここに表示されます）";
+  $("expText").textContent =
+    txt || "（meta.json の llm_text に A/B を入れるとここに表示されます）";
 }
 
 async function loadCaseByIndex(idx) {
@@ -113,7 +218,7 @@ async function loadCaseByIndex(idx) {
   seenB = false;
   updateSeenBadges();
 
-  // アンケUI初期化
+  // UI初期化
   clearCaseInputs();
 
   // meta 読み込み（キャッシュ）
@@ -126,16 +231,24 @@ async function loadCaseByIndex(idx) {
   }
 
   // 最後のボタン文言
-  $("btnNextCase").textContent = (currentCaseIdx === CASES.length - 1) ? "送信して終了" : "回答して次へ";
+  $("btnNextCase").textContent =
+    currentCaseIdx === CASES.length - 1 ? "送信して終了" : "回答して次へ";
   $("caseErr").textContent = "";
 
+  // もし途中再開で「既にこの局面の回答がある」なら復元
+  restoreCaseInputsIfExists(c.id);
+
   render();
+
+  // 状態保存
+  saveState("case");
 }
 
 function showPage(which) {
-  $("pagePre").style.display = (which === "pre") ? "" : "none";
-  $("pageCase").style.display = (which === "case") ? "" : "none";
-  $("pageThanks").style.display = (which === "thanks") ? "" : "none";
+  $("pagePre").style.display = which === "pre" ? "" : "none";
+  $("pageCase").style.display = which === "case" ? "" : "none";
+  $("pageThanks").style.display = which === "thanks" ? "" : "none";
+  saveState(which);
 }
 
 function getPreValue() {
@@ -171,11 +284,28 @@ function buildScale(containerId, name) {
 }
 
 function clearCaseInputs() {
-  // ラジオは name でまとめてクリア
-  ["case_q1", "case_q2", "case_q3", "case_q4"].forEach(n => {
-    document.querySelectorAll(`input[name="${n}"]`).forEach(el => el.checked = false);
+  ["case_q1", "case_q2", "case_q3", "case_q4"].forEach((n) => {
+    document
+      .querySelectorAll(`input[name="${n}"]`)
+      .forEach((el) => (el.checked = false));
   });
   $("q5Text").value = "";
+}
+
+function restoreCaseInputsIfExists(caseId) {
+  const a = answers.cases[caseId];
+  if (!a) return;
+
+  const setRadio = (name, v) => {
+    if (!v) return;
+    const el = document.querySelector(`input[name="${name}"][value="${v}"]`);
+    if (el) el.checked = true;
+  };
+  setRadio("case_q1", a.q1);
+  setRadio("case_q2", a.q2);
+  setRadio("case_q3", a.q3);
+  setRadio("case_q4", a.q4);
+  $("q5Text").value = a.q5 || "";
 }
 
 function getScaleVal(name) {
@@ -184,7 +314,8 @@ function getScaleVal(name) {
 
 function validateCase() {
   // 解説Bを一度は開いてほしい
-  if (!seenB) return "解説Bを開いてから回答してください。（上の「解説B」を押してください）";
+  if (!seenB)
+    return "解説Bを開いてから回答してください。（上の「解説B」を押してください）";
 
   const q1 = getScaleVal("case_q1");
   const q2 = getScaleVal("case_q2");
@@ -202,8 +333,9 @@ function saveCurrentCaseAnswers() {
     q2: getScaleVal("case_q2"),
     q3: getScaleVal("case_q3"),
     q4: getScaleVal("case_q4"),
-    q5: $("q5Text").value.trim()
+    q5: $("q5Text").value.trim(),
   };
+  saveState("case");
 }
 
 function submitAllToGoogleForm() {
@@ -211,10 +343,10 @@ function submitAllToGoogleForm() {
   form.action = FORM_ACTION;
   form.innerHTML = ""; // いったん全消し
 
-  const add = (name, value) => {
+  const add = (name, value, { allowEmpty = false } = {}) => {
     if (value == null) return;
-    const v = String(value).trim();
-    if (!v) return;
+    const v = String(value);
+    if (!allowEmpty && !v.trim()) return;
     const inp = document.createElement("input");
     inp.type = "hidden";
     inp.name = name;
@@ -222,19 +354,20 @@ function submitAllToGoogleForm() {
     form.appendChild(inp);
   };
 
-  // 事前
+  // 事前（必須）
   add(ENTRY_PRE.studentId, answers.pre.studentId);
   add(ENTRY_PRE.grade, answers.pre.grade);
   add(ENTRY_PRE.exp, answers.pre.exp);
 
-  // 各局面
+  // 各局面（Q1-4は必須前提、Q5は任意）
   for (const c of CASES) {
     const a = answers.cases[c.id] || {};
     add(c.entry.q1, a.q1 || "");
     add(c.entry.q2, a.q2 || "");
     add(c.entry.q3, a.q3 || "");
     add(c.entry.q4, a.q4 || "");
-    add(c.entry.q5, a.q5 || "");
+    // 任意なので空でも送ってOK（送らなくてもOKだが、後処理を簡単にしたいなら送るのもアリ）
+    add(c.entry.q5, a.q5 || "", { allowEmpty: true });
   }
 
   // 送信（CORS回避：hidden iframe）
@@ -248,6 +381,50 @@ async function init() {
   buildScale("q3Scale", "case_q3");
   buildScale("q4Scale", "case_q4");
 
+  // リセット（あれば）
+  if ($("btnReset")) {
+    $("btnReset").addEventListener("click", () => {
+      const ok = confirm("入力済みの内容を消して、最初からやり直しますか？");
+      if (!ok) return;
+      clearState();
+      location.reload();
+    });
+  }
+
+  // 途中再開（あれば）
+  const st = loadState();
+  if (st?.answers?.pre?.studentId) {
+    // pre入力欄も復元
+    try {
+      $("studentId").value = st.answers.pre.studentId || "";
+      $("grade").value = st.answers.pre.grade || "";
+      const expVal = st.answers.pre.exp || "";
+      if (expVal) {
+        const expRadio = document.querySelector(
+          `input[name="exp"][value="${CSS.escape(expVal)}"]`
+        );
+        if (expRadio) expRadio.checked = true;
+      }
+    } catch (e) {}
+
+    if ($("btnResume")) {
+      $("btnResume").style.display = "";
+      $("btnResume").addEventListener("click", async () => {
+        // answers を復元
+        answers.pre = st.answers.pre || { studentId: "", grade: "", exp: "" };
+        answers.cases = st.answers.cases || {};
+
+        showPage("case");
+        const idx =
+          typeof st.currentCaseIdx === "number" && st.currentCaseIdx >= 0
+            ? Math.min(st.currentCaseIdx, CASES.length - 1)
+            : 0;
+        await loadCaseByIndex(idx);
+        window.scrollTo({ top: 0, behavior: "auto" });
+      });
+    }
+  }
+
   // 事前 → 局面へ
   $("btnStart").addEventListener("click", async () => {
     const msg = validatePre();
@@ -255,20 +432,23 @@ async function init() {
     if (msg) return;
 
     answers.pre = getPreValue();
+    saveState("case");
+
     showPage("case");
     await loadCaseByIndex(0);
+    window.scrollTo({ top: 0, behavior: "auto" });
   });
 
   // PV切替
   $("btnBad").addEventListener("click", () => {
     lineKind = "bad";
-    setActive(["btnBad","btnBest"], "btnBad");
+    setActive(["btnBad", "btnBest"], "btnBad");
     frameIdx = 0;
     render();
   });
   $("btnBest").addEventListener("click", () => {
     lineKind = "best";
-    setActive(["btnBad","btnBest"], "btnBest");
+    setActive(["btnBad", "btnBest"], "btnBest");
     frameIdx = 0;
     render();
   });
@@ -276,22 +456,28 @@ async function init() {
   // 解説切替（閲覧管理）
   $("btnExpA").addEventListener("click", () => {
     expKind = "A";
-    setActive(["btnExpA","btnExpB"], "btnExpA");
-    seenA = true; // 念のため
+    setActive(["btnExpA", "btnExpB"], "btnExpA");
+    seenA = true;
     updateSeenBadges();
     render();
   });
   $("btnExpB").addEventListener("click", () => {
     expKind = "B";
-    setActive(["btnExpA","btnExpB"], "btnExpB");
+    setActive(["btnExpA", "btnExpB"], "btnExpB");
     seenB = true;
     updateSeenBadges();
     render();
   });
 
   // フレーム移動
-  $("prevBtn").addEventListener("click", () => { frameIdx--; render(); });
-  $("nextBtn").addEventListener("click", () => { frameIdx++; render(); });
+  $("prevBtn").addEventListener("click", () => {
+    frameIdx--;
+    render();
+  });
+  $("nextBtn").addEventListener("click", () => {
+    frameIdx++;
+    render();
+  });
   $("frameSlider").addEventListener("input", (e) => {
     frameIdx = Number(e.target.value);
     render();
@@ -307,14 +493,15 @@ async function init() {
 
     if (currentCaseIdx < CASES.length - 1) {
       await loadCaseByIndex(currentCaseIdx + 1);
-      window.scrollTo({ top: 0, behavior: "instant" });
+      window.scrollTo({ top: 0, behavior: "auto" });
       return;
     }
 
     // 最後：送信して完了画面へ
     submitAllToGoogleForm();
+    clearState();
     showPage("thanks");
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   });
 
   // 初期表示：事前アンケート
