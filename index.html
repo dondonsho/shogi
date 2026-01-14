@@ -29,7 +29,7 @@
         </p>
         <div class="metaRow">
           <span class="metaBadge" id="setLabelPre">対象局面：1〜3（3局面）</span>
-          <span class="metaBadge" id="orderLabelPre">提示順：B（タグあり）→A（タグなし）</span>
+          <span class="metaBadge" id="orderLabelPre">提示順：A（タグあり）→B（タグなし）</span>
         </div>
       </div>
 
@@ -96,17 +96,17 @@
         <div class="progress">
           <span id="caseProgress">1 / 3</span>
           <span class="orderBadge" id="setLabel">対象局面：1〜3（3局面）</span>
-          <span class="orderBadge" id="orderLabel">提示順：B（タグあり）→A（タグなし）</span>
+          <span class="orderBadge" id="orderLabel">提示順：A（タグあり）→B（タグなし）</span>
         </div>
       </div>
 
       <div class="noteBox">
         <div class="noteTitle">回答方法</div>
         <ul class="noteList">
-          <li id="orderHint">① まず <b>解説B（タグあり） → 解説A（タグなし）</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。</li>
+          <li id="orderHint">① まず <b>解説A（タグあり） → 解説B（タグなし）</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。</li>
           <li>② PV（局面の推移）は「悪手後PV / 最善手後PV」で切り替えできます。スライダー（または←→）で局面が動きます。PVを見るかどうかは任意です。</li>
           <li>③ 評価は 1〜5 で回答します。<br>
-              <b>1＝解説A（タグなし）の方が当てはまる</b> ／ <b>5＝解説B（タグあり）の方が当てはまる</b> ／ 3＝同程度</li>
+              <b>1＝解説A（タグあり）の方が当てはまる</b> ／ <b>5＝解説B（タグなし）の方が当てはまる</b> ／ 3＝同程度</li>
           <li>④ 回答が終わったら「回答して次へ」を押してください。</li>
         </ul>
       </div>
@@ -121,8 +121,8 @@
             </div>
 
             <div class="seg">
-              <button class="segBtn" id="btnExpA" type="button">解説A（タグなし）</button>
-              <button class="segBtn active" id="btnExpB" type="button">解説B（タグあり）</button>
+              <button class="segBtn active" id="btnExpA" type="button">解説A（タグあり）</button>
+              <button class="segBtn" id="btnExpB" type="button">解説B（タグなし）</button>
             </div>
 
             <div class="seen">
@@ -148,7 +148,7 @@
         <!-- 右：解説＋アンケ -->
         <aside class="caseRight">
           <div class="textBox">
-            <div class="h" id="expTitle">解説B（タグあり）</div>
+            <div class="h" id="expTitle">解説A（タグあり）</div>
             <pre id="expText"></pre>
           </div>
 
