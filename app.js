@@ -19,30 +19,29 @@ function setLabelText() {
 
 /**
  * ============================
- * 解説提示順：固定（タグあり→タグなし）
- *  - A=タグなし
- *  - B=タグあり
- * したがって提示順は常に B→A
+ * 解説提示順：固定（A→B）
+ *  - A=タグあり
+ *  - B=タグなし
  * ============================
  */
-const ORDER = "BA";
+const ORDER = "AB";
 
 function firstExpKind() {
-  return "B";
+  return "A";
 }
 function orderLabelText() {
-  return "提示順：B（タグあり）→A（タグなし）";
+  return "提示順：A（タグあり）→B（タグなし）";
 }
 
 function updateMetaUI() {
-  // 事前ページの表示
+  // 事前ページ
   const preOrder = $("orderLabelPre");
   if (preOrder) preOrder.textContent = orderLabelText();
 
   const preSet = $("setLabelPre");
   if (preSet) preSet.textContent = setLabelText();
 
-  // 局面ページの表示
+  // 局面ページ
   const ol = $("orderLabel");
   if (ol) ol.textContent = orderLabelText();
 
@@ -53,7 +52,7 @@ function updateMetaUI() {
   const oh = $("orderHint");
   if (oh) {
     oh.innerHTML =
-      '① まず <b>解説B（タグあり） → 解説A（タグなし）</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。';
+      '① まず <b>解説A（タグあり） → 解説B（タグなし）</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。';
   }
 }
 
@@ -155,9 +154,9 @@ const ENTRY_PRE = {
 };
 
 // （任意）セット情報をGoogle Formへ保存したいなら、フォームに短文設問を追加してentryを入れる
-const ENTRY_SET = "";   // 例: "entry.1234567890"
-// （任意）提示順も保存したいなら（今回は固定なので不要だがログとして残したい場合）
-const ENTRY_ORDER = ""; // 例: "entry.0987654321"
+const ENTRY_SET = "";   // 例: "entry.1234567890";
+// （任意）提示順も保存したいなら（今回は固定だがログで残したい場合）
+const ENTRY_ORDER = ""; // 例: "entry.0987654321";
 
 /**
  * ============================
@@ -165,7 +164,7 @@ const ENTRY_ORDER = ""; // 例: "entry.0987654321"
  * setごとにキーを分離
  * ============================
  */
-const STORAGE_KEY = `shogi_survey_state_set${SET}_v1`;
+const STORAGE_KEY = `shogi_survey_state_set${SET}_v2`;
 
 function saveState(phase) {
   try {
@@ -260,7 +259,7 @@ function render() {
   // 解説
   const txt = meta?.llm_text?.[expKind] ?? "";
   $("expTitle").textContent =
-    expKind === "B" ? "解説B（タグあり）" : "解説A（タグなし）";
+    expKind === "A" ? "解説A（タグあり）" : "解説B（タグなし）";
   $("expText").textContent =
     txt || "（meta.json の llm_text に A/B を入れるとここに表示されます）";
 }
@@ -275,15 +274,15 @@ async function loadCaseByIndex(idx) {
 
   // 初期化
   lineKind = "bad";
-  expKind = firstExpKind(); // 常にBから
+  expKind = firstExpKind(); // 常にAから
   frameIdx = 0;
 
   setActive(["btnBad", "btnBest"], "btnBad");
-  setActive(["btnExpA", "btnExpB"], "btnExpB"); // 最初はB
+  setActive(["btnExpA", "btnExpB"], "btnExpA"); // 最初はA
 
-  // 最初に表示されるBは閲覧扱い、Aは未
-  seenA = false;
-  seenB = true;
+  // 最初に表示されるAは閲覧扱い、Bは未
+  seenA = true;
+  seenB = false;
   updateSeenBadges();
 
   // UI初期化
@@ -379,7 +378,7 @@ function getScaleVal(name) {
 }
 
 function validateCase() {
-  // B→A固定でも「両方読んでから」回答させる
+  // A→B固定でも「両方読んでから」回答させる
   if (!seenA || !seenB)
     return "解説Aと解説Bの両方を開いてから回答してください。（上の「解説A / 解説B」を押してください）";
 
