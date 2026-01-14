@@ -2,6 +2,50 @@ const $ = (id) => document.getElementById(id);
 
 /**
  * ============================
+ * 表示順の出し分け（URLパラメータ）
+ *  - ?order=AB で A→B 開始（デフォルト）
+ *  - ?order=BA で B→A 開始
+ * ※ A=タグ無し / B=タグあり の意味は固定。変わるのは「最初に見せる順番」だけ。
+ * ============================
+ */
+function getOrderFromUrl() {
+  const v = new URLSearchParams(location.search).get("order");
+  return String(v || "")
+    .trim()
+    .toUpperCase() === "BA"
+    ? "BA"
+    : "AB";
+}
+let ORDER = getOrderFromUrl();
+
+function firstExpKind() {
+  return ORDER === "BA" ? "B" : "A";
+}
+function orderLabelText() {
+  return ORDER === "BA" ? "提示順：B→A" : "提示順：A→B";
+}
+
+function updateOrderUI() {
+  // 事前ページの表示
+  const pre = $("orderLabelPre");
+  if (pre) pre.textContent = orderLabelText();
+
+  // 局面ページの表示
+  const ol = $("orderLabel");
+  if (ol) ol.textContent = orderLabelText();
+
+  // 回答方法の「まず読む順番」文
+  const oh = $("orderHint");
+  if (oh) {
+    oh.innerHTML =
+      ORDER === "BA"
+        ? '① まず <b>解説B → 解説A</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。'
+        : '① まず <b>解説A → 解説B</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。';
+  }
+}
+
+/**
+ * ============================
  * 6局面ぶんの設定
  * - folder: case01 ... case06 のフォルダ名
  * - entry: Google Form の entry ID（あなたのURLに入っていた値を転記）
@@ -94,11 +138,22 @@ const ENTRY_PRE = {
 };
 
 /**
+ * （任意）提示順もGoogle Formに保存したい場合：
+ *  1) Google Formに「提示順（AB/BA）」の短文設問を1つ追加
+ *  2) その entry.xxxxx をここに入れる
+ *
+ * 例: const ENTRY_ORDER = "entry.1234567890";
+ *
+ * ※ 入れなくてもアンケートは動く（集計で順序群を分けたいなら入れるのがおすすめ）
+ */
+const ENTRY_ORDER = ""; // ←必要ならセット
+
+/**
  * ============================
  * 途中再開用（localStorage）
  * ============================
  */
-const STORAGE_KEY = "shogi_survey_state_v1";
+const STORAGE_KEY = "shogi_survey_state_v2"; // v2に更新（order保存対応）
 
 function saveState(phase) {
   try {
@@ -106,6 +161,7 @@ function saveState(phase) {
       phase, // "pre" | "case" | "thanks"
       currentCaseIdx,
       answers,
+      order: ORDER, // ★提示順を保存
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch (e) {
@@ -142,7 +198,7 @@ const answers = {
   cases: {}, // caseId -> {q1..q5}
 };
 
-// 解説閲覧（Aは最初から表示＝閲覧扱い、Bはクリック必須）
+// 解説閲覧（最初に表示された方は閲覧扱い、もう片方はクリック必須）
 let seenA = false;
 let seenB = false;
 
@@ -207,15 +263,15 @@ async function loadCaseByIndex(idx) {
 
   // 初期化
   lineKind = "bad";
-  expKind = "A";
+  expKind = firstExpKind(); // ★順序に応じて初期表示
   frameIdx = 0;
 
   setActive(["btnBad", "btnBest"], "btnBad");
-  setActive(["btnExpA", "btnExpB"], "btnExpA");
+  setActive(["btnExpA", "btnExpB"], expKind === "A" ? "btnExpA" : "btnExpB");
 
-  // ★Aは最初から表示されるので閲覧扱い
-  seenA = true;
-  seenB = false;
+  // ★最初に表示される方は閲覧扱い、もう片方は未
+  seenA = expKind === "A";
+  seenB = expKind === "B";
   updateSeenBadges();
 
   // UI初期化
@@ -313,9 +369,9 @@ function getScaleVal(name) {
 }
 
 function validateCase() {
-  // 解説Bを一度は開いてほしい
-  if (!seenB)
-    return "解説Bを開いてから回答してください。（上の「解説B」を押してください）";
+  // ★順序がAB/BAどちらでも、両方読んでから回答してほしい
+  if (!seenA || !seenB)
+    return "解説Aと解説Bの両方を開いてから回答してください。（上の「解説A / 解説B」を押してください）";
 
   const q1 = getScaleVal("case_q1");
   const q2 = getScaleVal("case_q2");
@@ -344,6 +400,7 @@ function submitAllToGoogleForm() {
   form.innerHTML = ""; // いったん全消し
 
   const add = (name, value, { allowEmpty = false } = {}) => {
+    if (!name) return; // ★nameが空なら何もしない
     if (value == null) return;
     const v = String(value);
     if (!allowEmpty && !v.trim()) return;
@@ -353,6 +410,9 @@ function submitAllToGoogleForm() {
     inp.value = v;
     form.appendChild(inp);
   };
+
+  // （任意）提示順
+  if (ENTRY_ORDER) add(ENTRY_ORDER, ORDER);
 
   // 事前（必須）
   add(ENTRY_PRE.studentId, answers.pre.studentId);
@@ -366,7 +426,7 @@ function submitAllToGoogleForm() {
     add(c.entry.q2, a.q2 || "");
     add(c.entry.q3, a.q3 || "");
     add(c.entry.q4, a.q4 || "");
-    // 任意なので空でも送ってOK（送らなくてもOKだが、後処理を簡単にしたいなら送るのもアリ）
+    // 任意なので空でも送ってOK
     add(c.entry.q5, a.q5 || "", { allowEmpty: true });
   }
 
@@ -381,6 +441,15 @@ async function init() {
   buildScale("q3Scale", "case_q3");
   buildScale("q4Scale", "case_q4");
 
+  // 途中再開（あれば）
+  const st = loadState();
+
+  // ★再開データがあれば、その人の提示順を固定（途中でURL変えても揺れない）
+  if (st?.order) {
+    ORDER = st.order;
+  }
+  updateOrderUI();
+
   // リセット（あれば）
   if ($("btnReset")) {
     $("btnReset").addEventListener("click", () => {
@@ -391,8 +460,6 @@ async function init() {
     });
   }
 
-  // 途中再開（あれば）
-  const st = loadState();
   if (st?.answers?.pre?.studentId) {
     // pre入力欄も復元
     try {
@@ -413,6 +480,8 @@ async function init() {
         // answers を復元
         answers.pre = st.answers.pre || { studentId: "", grade: "", exp: "" };
         answers.cases = st.answers.cases || {};
+        if (st.order) ORDER = st.order; // 念のため
+        updateOrderUI();
 
         showPage("case");
         const idx =
@@ -435,6 +504,7 @@ async function init() {
     saveState("case");
 
     showPage("case");
+    updateOrderUI();
     await loadCaseByIndex(0);
     window.scrollTo({ top: 0, behavior: "auto" });
   });
