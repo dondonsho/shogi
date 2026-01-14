@@ -2,8 +2,8 @@ const $ = (id) => document.getElementById(id);
 
 /**
  * ============================
- * 局面セットの出し分け（URLパラメータ）
- *  - ?set=1 で case01〜03
+ * 対象局面の出し分け（URLパラメータ）
+ *  - ?set=1 で case01〜03（デフォルト）
  *  - ?set=2 で case04〜06
  * ============================
  */
@@ -13,55 +13,26 @@ function getSetFromUrl() {
 }
 const SET = getSetFromUrl();
 
-function setLabelText() {
+function targetLabelText() {
   return SET === "2" ? "対象局面：4〜6（3局面）" : "対象局面：1〜3（3局面）";
 }
 
-/**
- * ============================
- * 解説提示順：固定（A→B）
- *  - A=タグあり
- *  - B=タグなし
- * ============================
- */
-const ORDER = "AB";
+function updateTargetUI() {
+  const pre = $("targetLabelPre");
+  if (pre) pre.textContent = targetLabelText();
 
-function firstExpKind() {
-  return "A";
-}
-function orderLabelText() {
-  return "提示順：A（タグあり）→B（タグなし）";
-}
-
-function updateMetaUI() {
-  // 事前ページ
-  const preOrder = $("orderLabelPre");
-  if (preOrder) preOrder.textContent = orderLabelText();
-
-  const preSet = $("setLabelPre");
-  if (preSet) preSet.textContent = setLabelText();
-
-  // 局面ページ
-  const ol = $("orderLabel");
-  if (ol) ol.textContent = orderLabelText();
-
-  const sl = $("setLabel");
-  if (sl) sl.textContent = setLabelText();
-
-  // 回答方法の「まず読む順番」文（固定）
-  const oh = $("orderHint");
-  if (oh) {
-    oh.innerHTML =
-      '① まず <b>解説A（タグあり） → 解説B（タグなし）</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。';
-  }
+  const ol = $("targetLabel");
+  if (ol) ol.textContent = targetLabelText();
 }
 
 /**
  * ============================
- * 6局面ぶんの設定
+ * 6局面ぶんの設定（全体）
+ * - folder: case01 ... case06 のフォルダ名
+ * - entry: Google Form の entry ID
  * ============================
  */
-const CASES = [
+const ALL_CASES = [
   {
     id: "case01",
     title: "局面1",
@@ -136,11 +107,9 @@ const CASES = [
   },
 ];
 
-/**
- * set=1 => case01-03
- * set=2 => case04-06
- */
-const ACTIVE_CASES = SET === "2" ? CASES.slice(3, 6) : CASES.slice(0, 3);
+// ★ set=1 は 1〜3、set=2 は 4〜6
+const CASES =
+  SET === "2" ? ALL_CASES.slice(3, 6) : ALL_CASES.slice(0, 3);
 
 // Google Form（formResponse）
 const FORM_ACTION =
@@ -153,18 +122,13 @@ const ENTRY_PRE = {
   exp: "entry.884953881",
 };
 
-// （任意）セット情報をGoogle Formへ保存したいなら、フォームに短文設問を追加してentryを入れる
-const ENTRY_SET = "";   // 例: "entry.1234567890";
-// （任意）提示順も保存したいなら（今回は固定だがログで残したい場合）
-const ENTRY_ORDER = ""; // 例: "entry.0987654321";
-
 /**
  * ============================
  * 途中再開用（localStorage）
- * setごとにキーを分離
+ *  - set=1 / set=2 で混ざらないようにキーを分ける
  * ============================
  */
-const STORAGE_KEY = `shogi_survey_state_set${SET}_v2`;
+const STORAGE_KEY = `shogi_survey_state_v3_set${SET}`;
 
 function saveState(phase) {
   try {
@@ -172,7 +136,6 @@ function saveState(phase) {
       phase, // "pre" | "case" | "thanks"
       currentCaseIdx,
       answers,
-      order: ORDER,
       set: SET,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -197,7 +160,7 @@ let currentCaseIdx = -1;
 let meta = null;
 
 let lineKind = "bad"; // bad / best
-let expKind = "A"; // A / B
+let expKind = "A"; // A / B（★常に A→B）
 let frameIdx = 0;
 
 const metaCache = new Map();
@@ -208,7 +171,7 @@ const answers = {
   cases: {}, // caseId -> {q1..q5}
 };
 
-// 解説閲覧（両方読んでから回答）
+// 解説閲覧（最初に表示された方は閲覧扱い、もう片方はクリック必須）
 let seenA = false;
 let seenB = false;
 
@@ -246,7 +209,7 @@ function render() {
   const fr = frames[frameIdx];
 
   // 画像
-  $("boardImg").src = `${caseDir(ACTIVE_CASES[currentCaseIdx])}/${fr.file}`;
+  $("boardImg").src = `${caseDir(CASES[currentCaseIdx])}/${fr.file}`;
 
   // ラベル
   $("frameLabel").textContent = fr.label || "";
@@ -258,29 +221,28 @@ function render() {
 
   // 解説
   const txt = meta?.llm_text?.[expKind] ?? "";
-  $("expTitle").textContent =
-    expKind === "A" ? "解説A（タグあり）" : "解説B（タグなし）";
+  $("expTitle").textContent = `解説${expKind}`; // ★タグ表記は一切しない
   $("expText").textContent =
     txt || "（meta.json の llm_text に A/B を入れるとここに表示されます）";
 }
 
 async function loadCaseByIndex(idx) {
   currentCaseIdx = idx;
-  const c = ACTIVE_CASES[currentCaseIdx];
+  const c = CASES[currentCaseIdx];
 
   $("caseTitle").textContent = c.title;
   $("caseTitleInline").textContent = c.title;
-  $("caseProgress").textContent = `${currentCaseIdx + 1} / ${ACTIVE_CASES.length}`;
+  $("caseProgress").textContent = `${currentCaseIdx + 1} / ${CASES.length}`;
 
   // 初期化
   lineKind = "bad";
-  expKind = firstExpKind(); // 常にAから
+  expKind = "A"; // ★常にAから開始
   frameIdx = 0;
 
   setActive(["btnBad", "btnBest"], "btnBad");
-  setActive(["btnExpA", "btnExpB"], "btnExpA"); // 最初はA
+  setActive(["btnExpA", "btnExpB"], "btnExpA");
 
-  // 最初に表示されるAは閲覧扱い、Bは未
+  // ★最初に表示されるAは閲覧扱い、Bは未
   seenA = true;
   seenB = false;
   updateSeenBadges();
@@ -299,13 +261,15 @@ async function loadCaseByIndex(idx) {
 
   // 最後のボタン文言
   $("btnNextCase").textContent =
-    currentCaseIdx === ACTIVE_CASES.length - 1 ? "送信して終了" : "回答して次へ";
+    currentCaseIdx === CASES.length - 1 ? "送信して終了" : "回答して次へ";
   $("caseErr").textContent = "";
 
-  // 途中再開で「既にこの局面の回答がある」なら復元
+  // もし途中再開で「既にこの局面の回答がある」なら復元
   restoreCaseInputsIfExists(c.id);
 
   render();
+
+  // 状態保存
   saveState("case");
 }
 
@@ -378,7 +342,7 @@ function getScaleVal(name) {
 }
 
 function validateCase() {
-  // A→B固定でも「両方読んでから」回答させる
+  // ★両方読んでから回答してほしい
   if (!seenA || !seenB)
     return "解説Aと解説Bの両方を開いてから回答してください。（上の「解説A / 解説B」を押してください）";
 
@@ -392,7 +356,7 @@ function validateCase() {
 }
 
 function saveCurrentCaseAnswers() {
-  const c = ACTIVE_CASES[currentCaseIdx];
+  const c = CASES[currentCaseIdx];
   answers.cases[c.id] = {
     q1: getScaleVal("case_q1"),
     q2: getScaleVal("case_q2"),
@@ -406,7 +370,7 @@ function saveCurrentCaseAnswers() {
 function submitAllToGoogleForm() {
   const form = $("gForm");
   form.action = FORM_ACTION;
-  form.innerHTML = "";
+  form.innerHTML = ""; // いったん全消し
 
   const add = (name, value, { allowEmpty = false } = {}) => {
     if (!name) return;
@@ -420,17 +384,13 @@ function submitAllToGoogleForm() {
     form.appendChild(inp);
   };
 
-  // （任意）セット／提示順をフォームに保存
-  if (ENTRY_SET) add(ENTRY_SET, SET);
-  if (ENTRY_ORDER) add(ENTRY_ORDER, ORDER);
-
   // 事前（必須）
   add(ENTRY_PRE.studentId, answers.pre.studentId);
   add(ENTRY_PRE.grade, answers.pre.grade);
   add(ENTRY_PRE.exp, answers.pre.exp);
 
-  // ★このセットに含まれる局面だけ送る
-  for (const c of ACTIVE_CASES) {
+  // 各局面（Q1-4は必須前提、Q5は任意）
+  for (const c of CASES) {
     const a = answers.cases[c.id] || {};
     add(c.entry.q1, a.q1 || "");
     add(c.entry.q2, a.q2 || "");
@@ -439,20 +399,24 @@ function submitAllToGoogleForm() {
     add(c.entry.q5, a.q5 || "", { allowEmpty: true });
   }
 
+  // 送信（CORS回避：hidden iframe）
   form.submit();
 }
 
 async function init() {
-  // UI反映（提示順・対象局面）
-  updateMetaUI();
-
   // スケール生成
   buildScale("q1Scale", "case_q1");
   buildScale("q2Scale", "case_q2");
   buildScale("q3Scale", "case_q3");
   buildScale("q4Scale", "case_q4");
 
-  // リセット
+  // 対象局面UI（set=1/2）
+  updateTargetUI();
+
+  // 途中再開（あれば）
+  const st = loadState();
+
+  // リセット（あれば）
   if ($("btnReset")) {
     $("btnReset").addEventListener("click", () => {
       const ok = confirm("入力済みの内容を消して、最初からやり直しますか？");
@@ -462,9 +426,8 @@ async function init() {
     });
   }
 
-  // 途中再開
-  const st = loadState();
   if (st?.answers?.pre?.studentId) {
+    // pre入力欄も復元
     try {
       $("studentId").value = st.answers.pre.studentId || "";
       $("grade").value = st.answers.pre.grade || "";
@@ -480,13 +443,14 @@ async function init() {
     if ($("btnResume")) {
       $("btnResume").style.display = "";
       $("btnResume").addEventListener("click", async () => {
+        // answers を復元
         answers.pre = st.answers.pre || { studentId: "", grade: "", exp: "" };
         answers.cases = st.answers.cases || {};
 
         showPage("case");
         const idx =
           typeof st.currentCaseIdx === "number" && st.currentCaseIdx >= 0
-            ? Math.min(st.currentCaseIdx, ACTIVE_CASES.length - 1)
+            ? Math.min(st.currentCaseIdx, CASES.length - 1)
             : 0;
         await loadCaseByIndex(idx);
         window.scrollTo({ top: 0, behavior: "auto" });
@@ -560,7 +524,7 @@ async function init() {
 
     saveCurrentCaseAnswers();
 
-    if (currentCaseIdx < ACTIVE_CASES.length - 1) {
+    if (currentCaseIdx < CASES.length - 1) {
       await loadCaseByIndex(currentCaseIdx + 1);
       window.scrollTo({ top: 0, behavior: "auto" });
       return;
