@@ -1,0 +1,52 @@
+{
+  "idx": 9,
+  "ply": 46,
+  "side": "後手",
+  "move_kif": "△６二角",
+  "best_kif": "△５二銀打",
+  "eval_prev": 3043,
+  "eval_cur": 99999,
+  "delta": 96956,
+  "frames": {
+    "bad": [
+      {
+        "file": "bad_00.png",
+        "label": "後手が悪手を指す直前の局面"
+      },
+      {
+        "file": "bad_01.png",
+        "label": "悪手を指した局面　△６二角"
+      },
+      {
+        "file": "bad_02.png",
+        "label": "悪手後 1 手目の局面　▲５二金打（王手） / 後手詰み"
+      }
+    ],
+    "best": [
+      {
+        "file": "best_00.png",
+        "label": "後手が最善手を指す直前の局面"
+      },
+      {
+        "file": "best_01.png",
+        "label": "最善手を指した局面　△５二銀打"
+      },
+      {
+        "file": "best_02.png",
+        "label": "最善手後 1 手目の局面　▲５三龍"
+      },
+      {
+        "file": "best_03.png",
+        "label": "最善手後 2 手目の局面　△同　銀"
+      },
+      {
+        "file": "best_04.png",
+        "label": "最善手後 3 手目の局面　▲４三角打"
+      }
+    ]
+  },
+  "llm_text": {
+    "A": "",
+    "B": ""
+  }
+}

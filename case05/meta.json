@@ -1,0 +1,60 @@
+{
+  "idx": 11,
+  "ply": 90,
+  "side": "後手",
+  "move_kif": "△６六角打",
+  "best_kif": "△４四銀左上",
+  "eval_prev": -230,
+  "eval_cur": 721,
+  "delta": 951,
+  "frames": {
+    "bad": [
+      {
+        "file": "bad_00.png",
+        "label": "後手が悪手を指す直前の局面"
+      },
+      {
+        "file": "bad_01.png",
+        "label": "悪手を指した局面　△６六角打"
+      },
+      {
+        "file": "bad_02.png",
+        "label": "悪手後 1 手目の局面　▲同　龍"
+      },
+      {
+        "file": "bad_03.png",
+        "label": "悪手後 2 手目の局面　△同　歩"
+      },
+      {
+        "file": "bad_04.png",
+        "label": "悪手後 3 手目の局面　▲３三歩打"
+      }
+    ],
+    "best": [
+      {
+        "file": "best_00.png",
+        "label": "後手が最善手を指す直前の局面"
+      },
+      {
+        "file": "best_01.png",
+        "label": "最善手を指した局面　△４四銀左上"
+      },
+      {
+        "file": "best_02.png",
+        "label": "最善手後 1 手目の局面　▲同　角"
+      },
+      {
+        "file": "best_03.png",
+        "label": "最善手後 2 手目の局面　△同　銀"
+      },
+      {
+        "file": "best_04.png",
+        "label": "最善手後 3 手目の局面　▲３四銀打"
+      }
+    ]
+  },
+  "llm_text": {
+    "A": "",
+    "B": ""
+  }
+}
