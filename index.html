@@ -27,9 +27,10 @@
           このアンケートは、将棋の局面（画像）と「解説A / 解説B」を読み比べて評価するものです。<br>
           まずは、学籍番号・学年などの基本情報と、将棋経験について回答してください。
         </p>
-        <div class="metaRow">
-          <span class="metaBadge" id="setLabelPre">対象局面：1〜3（3局面）</span>
-          <span class="metaBadge" id="orderLabelPre">提示順：A（タグあり）→B（タグなし）</span>
+
+        <!-- ★「提示順」は表示しない。対象局面だけ表示 -->
+        <div class="badgeRow">
+          <span class="orderBadge" id="targetLabelPre"></span>
         </div>
       </div>
 
@@ -95,18 +96,20 @@
         <h2 class="panelTitle" id="caseTitle">局面1</h2>
         <div class="progress">
           <span id="caseProgress">1 / 3</span>
-          <span class="orderBadge" id="setLabel">対象局面：1〜3（3局面）</span>
-          <span class="orderBadge" id="orderLabel">提示順：A（タグあり）→B（タグなし）</span>
+          <!-- ★「提示順」は表示しない。対象局面だけ表示 -->
+          <span class="orderBadge" id="targetLabel"></span>
         </div>
       </div>
 
+      <!-- 回答方法 -->
       <div class="noteBox">
         <div class="noteTitle">回答方法</div>
         <ul class="noteList">
-          <li id="orderHint">① まず <b>解説A（タグあり） → 解説B（タグなし）</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。</li>
+          <!-- ★タグ表記を消して、A→Bのみ -->
+          <li>① まず <b>解説A → 解説B</b> の順に読んでください。その後は、必要に応じてA/Bを読み直してOKです。</li>
           <li>② PV（局面の推移）は「悪手後PV / 最善手後PV」で切り替えできます。スライダー（または←→）で局面が動きます。PVを見るかどうかは任意です。</li>
           <li>③ 評価は 1〜5 で回答します。<br>
-              <b>1＝解説A（タグあり）の方が当てはまる</b> ／ <b>5＝解説B（タグなし）の方が当てはまる</b> ／ 3＝同程度</li>
+              <b>1＝解説Aの方が当てはまる</b> ／ <b>5＝解説Bの方が当てはまる</b> ／ 3＝同程度</li>
           <li>④ 回答が終わったら「回答して次へ」を押してください。</li>
         </ul>
       </div>
@@ -121,8 +124,9 @@
             </div>
 
             <div class="seg">
-              <button class="segBtn active" id="btnExpA" type="button">解説A（タグあり）</button>
-              <button class="segBtn" id="btnExpB" type="button">解説B（タグなし）</button>
+              <!-- ★ボタンの（タグあり/なし）を消す -->
+              <button class="segBtn active" id="btnExpA" type="button">解説A</button>
+              <button class="segBtn" id="btnExpB" type="button">解説B</button>
             </div>
 
             <div class="seen">
@@ -148,7 +152,7 @@
         <!-- 右：解説＋アンケ -->
         <aside class="caseRight">
           <div class="textBox">
-            <div class="h" id="expTitle">解説A（タグあり）</div>
+            <div class="h" id="expTitle">解説A</div>
             <pre id="expText"></pre>
           </div>
 
