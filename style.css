@@ -15,7 +15,6 @@ body {
 }
 .brand { font-weight: 800; }
 
-/* ★追加：ヘッダー内の左右配置（brand / 最初からボタン） */
 .barInner{
   display:flex;
   align-items:center;
@@ -149,7 +148,6 @@ body {
   gap: 12px;
 }
 
-/* progress を中で並べる（ケース数 + バッジ） */
 .progress {
   color: #6b7280;
   font-size: 13px;
